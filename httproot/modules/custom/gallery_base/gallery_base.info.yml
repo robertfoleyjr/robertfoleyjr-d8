@@ -1,0 +1,9 @@
+name: 'Gallery Base'
+description: 'Provides the base entitles for gallery and image.'
+type: module
+core: 8.x
+dependencies:
+  - node
+  - standard
+version: 8.x-1.0
+package: Gallery
