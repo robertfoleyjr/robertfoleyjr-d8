@@ -1,0 +1,11 @@
+bundle: quotes
+required:
+  - core.base_field_override.node.quote.promote
+  - core.base_field_override.node.quote.title
+  - node.type.quote
+  - core.entity_form_display.node.quote.default
+  - core.entity_view_display.node.quote.default
+  - core.entity_view_display.node.quote.full
+  - core.entity_view_display.node.quote.teaser
+  - field.field.node.quote.body
+  - field.field.node.quote.field_node_author

@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.full
+    - field.field.node.quote.body
+    - field.field.node.quote.field_node_author
+    - node.type.quote
+  module:
+    - text
+    - user
+id: node.quote.full
+targetEntityType: node
+bundle: quote
+mode: full
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 101
+    settings: {  }
+    third_party_settings: {  }
+  field_node_author:
+    weight: 102
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+hidden:
+  links: true
