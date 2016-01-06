@@ -1,4 +1,4 @@
-name: 'Basic Page'
+name: 'Basic Page - base'
 type: module
 core: 8.x
 dependencies:
