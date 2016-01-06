@@ -38,6 +38,8 @@ xmlrpc.php
 # system directories
 assets/
 assets/*
+!httproot/core/assets
+!httproot/core/assets/*
 db/*
 docs/*
 
