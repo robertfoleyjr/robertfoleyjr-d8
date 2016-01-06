@@ -1,4 +1,3 @@
-bundle: gallery
 required:
   - core.base_field_override.node.gallery.promote
   - core.base_field_override.node.image.promote
