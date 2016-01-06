@@ -716,9 +716,7 @@ $settings['container_yamls'][] = __DIR__ . '/services.yml';
  *
  * Keep this code block at the end of this file to take full effect.
  */
- if (file_exists(__DIR__ . '/settings.local.php')) {
-   include __DIR__ . '/settings.local.php';
- }
+
 $databases['default']['default'] = array (
   'database' => 'd8.robertfoleyjr.dev',
   'username' => 'drupal8user',
@@ -729,5 +727,27 @@ $databases['default']['default'] = array (
   'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
   'driver' => 'mysql',
 );
+
 $settings['install_profile'] = 'standard';
+
 $config_directories['sync'] = 'sites/default/files/config_dGWvff1PiJb1gM7Fb6wDsxTK9vmNHjR6RThPPZO_N4pyCFhU9UZQcRqOG59EUYmYcMEwiRSz4w/sync';
+
+$settings['trusted_host_patterns'] = array(
+    '^robertfoleyjr\.com$',
+    '^.+\.robertfoleyjr\.com$',
+    '^robertfoleyjr\.org$',
+    '^.+\.robertfoleyjr\.org$',
+    '^robertfoleyjr\.net$',
+    '^.+\.robertfoleyjr\.net$',
+    '^robertfoley\.com$',
+    '^.+\.robertfoley\.com$',
+    '^robertfoley\.org$',
+    '^.+\.robertfoley\.org$',
+    '^robertfoley\.net$',
+    '^.+\.robertfoley\.net$',
+  );
+
+ if (file_exists(__DIR__ . '/settings.local.php')) {
+   include __DIR__ . '/settings.local.php';
+ }
+ 
