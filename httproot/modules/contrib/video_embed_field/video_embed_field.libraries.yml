@@ -1,0 +1,5 @@
+colorbox:
+  js:
+    js/video-embed-field.colorbox.js: {}
+  dependencies:
+    - colorbox/colorbox
