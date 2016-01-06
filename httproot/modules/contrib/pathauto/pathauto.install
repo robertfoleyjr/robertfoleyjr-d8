@@ -7,182 +7,191 @@
  * @ingroup pathauto
  */
 
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Utility\UpdateException;
+use Drupal\Core\Plugin\Context\Context;
+use Drupal\Core\Plugin\Context\ContextDefinition;
+use Drupal\pathauto\Entity\PathautoPattern;
+
 /**
  * Implements hook_install().
  */
 function pathauto_install() {
-  // Set some default variables necessary for the module to perform.
-  $defaults = array(
-    'pathauto_node_pattern' => 'content/[node:title]',
-    'pathauto_taxonomy_term_pattern' => '[term:vocabulary]/[term:name]',
-    'pathauto_forum_pattern' => '[term:vocabulary]/[term:name]',
-    'pathauto_user_pattern' => 'users/[user:name]',
-    'pathauto_blog_pattern' => 'blogs/[user:name]',
-    // Set hyphen character to replace instead of remove.
-    'pathauto_punctuation_hyphen' => 1,
-  );
-  foreach ($defaults as $variable => $default) {
-    if (variable_get($variable) === NULL) {
-      variable_set($variable, $default);
-    }
-  }
-
   // Set the weight to 1
-  db_update('system')
-    ->fields(array('weight' => 1))
-    ->condition('type', 'module')
-    ->condition('name', 'pathauto')
-    ->execute();
+  module_set_weight('pathauto', 1);
+
 }
 
 /**
- * Implements hook_uninstall().
+ * Updates pathauto widgets to use the path widget ID.
  */
-function pathauto_uninstall() {
-  // Delete all the pathauto variables and then clear the variable cache.
-  db_query("DELETE FROM {variable} WHERE name LIKE 'pathauto_%'");
-  cache_clear_all('variables', 'cache');
-}
+function pathauto_update_8001() {
 
-/**
- * Remove the unsupported user/%/contact and user/%/tracker pattern variables.
- */
-function pathauto_update_6200() {
-  variable_del('pathauto_contact_bulkupdate');
-  variable_del('pathauto_contact_pattern');
-  variable_del('pathauto_contact_supportsfeeds');
-  variable_del('pathauto_contact_applytofeeds');
-  variable_del('pathauto_tracker_bulkupdate');
-  variable_del('pathauto_tracker_pattern');
-  variable_del('pathauto_tracker_supportsfeeds');
-  variable_del('pathauto_tracker_applytofeeds');
-}
+  // Replace values in the 'entity.definitions.installed' keyvalue collection.
+  $collection = \Drupal::service('keyvalue')->get('entity.definitions.installed');
+  foreach ($collection->getAll() as $key => $definitions) {
+    if (!is_array($definitions) || empty($definitions['path'])) {
+      continue;
+    }
 
-/**
- * Empty update since it is handled by pathauto_update_7000().
- */
-function pathauto_update_6201() {
-}
+    // Retrieve and change path base field definition.
+    $path_definition = $definitions['path'];
+    if (($options = $path_definition->getDisplayOptions('form')) && $options['type'] = 'pathauto') {
+      $options['type'] = 'path';
+      $path_definition->setDisplayOptions('form', $options);
+      // Save the new value.
+      $collection->set($key, $definitions);
+    }
 
-/**
- * Empty update since it is handled by pathauto_update_7004().
- */
-function pathauto_update_6202() {
-}
+  }
 
-/**
- * Remove obsolete variables since batch API is now used.
- */
-function pathauto_update_7000() {
-  variable_del('pathauto_max_bulk_update');
-  variable_del('pathauto_node_bulkupdate');
-  variable_del('pathauto_taxonomy_bulkupdate');
-  variable_del('pathauto_forum_bulkupdate');
-  variable_del('pathauto_user_bulkupdate');
-  variable_del('pathauto_blog_bulkupdate');
-  variable_del('pathauto_modulelist');
-  variable_del('pathauto_indexaliases');
-  variable_del('pathauto_indexaliases_bulkupdate');
-}
-
-/**
- * Empty update since feed paths are no longer supported.
- */
-function pathauto_update_7001() {
-}
-
-/**
- * Update pathauto_taxonomy_[vid]_pattern variables to pathauto_taxonomy_[machinename]_pattern.
- */
-function pathauto_update_7002() {
-  if (module_exists('taxonomy')) {
-    $vocabularies = taxonomy_get_vocabularies();
-    foreach ($vocabularies as $vid => $vocabulary) {
-      if ($vid == variable_get('forum_nav_vocabulary', '')) {
-        // Skip the forum vocabulary.
-        continue;
+  foreach (EntityFormDisplay::loadMultiple() as $form_display) {
+    if ($component = $form_display->getComponent('path')) {
+      if (isset($component['type']) && $component['type'] == 'pathauto') {
+        $component['type'] = 'path';
+        $form_display->setComponent('path', $component);
+        $form_display->save();
       }
-      if ($pattern = variable_get('pathauto_taxonomy_' . $vid . '_pattern', '')) {
-        variable_set('pathauto_taxonomy_' . $vocabulary->machine_name . '_pattern', $pattern);
-      }
-      variable_del('pathauto_taxonomy_' . $vid . '_pattern');
     }
   }
 }
 
 /**
- * Rename 'taxonomy' variables to use the entity type 'taxonomy_term'.
+ * Converts patterns from configuration objects to configuration entities.
  */
-function pathauto_update_7003() {
-  $variables = db_select('variable', 'v')
-    ->fields('v', array('name'))
-    ->condition(db_and()
-      ->condition('name', db_like("pathauto_taxonomy_") . '%', 'LIKE')
-      ->condition('name', db_like("pathauto_taxonomy_term_") . '%', 'NOT LIKE')
-    )
-    ->execute()
-    ->fetchCol();
-  foreach ($variables as $variable) {
-    $value = variable_get($variable);
-    variable_del($variable);
-    $variable = strtr($variable, array('pathauto_taxonomy_' => 'pathauto_taxonomy_term_'));
-    variable_set($variable, $value);
+function pathauto_update_8100(&$sandbox) {
+  if (!\Drupal::service('module_handler')->moduleExists('ctools')) {
+    throw new UpdateException('Install Chaos tools suite (https://www.drupal.org/project/ctools) before running this database update.');
   }
-}
 
-/**
- * Remove obsolete variables for removed feed handling.
- */
-function pathauto_update_7004() {
-  variable_del('pathauto_node_supportsfeeds');
-  variable_del('pathauto_node_applytofeeds');
-  variable_del('pathauto_taxonomy_supportsfeeds');
-  variable_del('pathauto_taxonomy_applytofeeds');
-  variable_del('pathauto_forum_supportsfeeds');
-  variable_del('pathauto_forum_applytofeeds');
-  variable_del('pathauto_user_supportsfeeds');
-  variable_del('pathauto_user_applytofeeds');
-  variable_del('pathauto_blog_supportsfeeds');
-  variable_del('pathauto_blog_applytofeeds');
-}
+  $messages = array();
+  $entity_manager = \Drupal::service('entity.manager');
+  $entity_type_manager = \Drupal::service('entity_type.manager');
+  $language_manager = \Drupal::service('language_manager');
+  $entity_types = $entity_manager->getDefinitions();
 
-/**
- * Fix original incorrect tokens in taxonomy and forum patterns.
- */
-function pathauto_update_7005() {
-  $replacements = array(
-    '[vocabulary:name]' => '[term:vocabulary]',
-    '[vocabulary:' => '[term:vocabulary:',
-    '[term:catpath]' => '[term:name]',
-    '[term:path]' => '[term:name]',
-  );
-  $variables = db_select('variable', 'v')
-    ->fields('v', array('name'))
-    ->condition(db_or()
-      ->condition('name', db_like("pathauto_taxonomy_term_") . '%' . db_like('pattern'), 'LIKE')
-      ->condition('name', db_like("pathauto_forum_") . '%' . db_like('pattern'), 'LIKE')
-    )
-    ->execute()
-    ->fetchCol();
-  foreach ($variables as $variable) {
-    if ($pattern = variable_get($variable)) {
-      $pattern = strtr($pattern, $replacements);
-      variable_set($variable, $pattern);
+  // 1. Load all patterns.
+  $config = \Drupal::service('config.factory')->getEditable('pathauto.pattern');
+  $patterns = $config->get('patterns');
+
+  // 2. Create a configuration entity per pattern.
+  foreach ($patterns as $entity_type => $entity_patterns) {
+    if (!array_key_exists($entity_type, $entity_types)) {
+      // We found an unknown entity type. Report it.
+      $messages[] = t('Entity of type @type was not processed. It defines the following patterns: @patterns', array(
+        '@type' => $entity_type,
+        '@patterns' => print_r($entity_patterns, TRUE),
+      ));
+      continue;
+    }
+    $entity_label = $entity_types[$entity_type]->getLabel();
+
+    if (isset($entity_patterns['default'])) {
+      // This is a pattern for an entity type, such as "node".
+      $pattern = PathautoPattern::create([
+        'id' => $entity_type,
+        'label' => $entity_label,
+        'type' => 'canonical_entities:' . $entity_type,
+        'pattern' => $entity_patterns['default'],
+        'weight' => 0,
+      ]);
+      $pattern->save();
+    }
+
+    // Loop over bundles and create patterns if they have a value.
+    // Bundle keys may have a language suffix for language-dependant patterns.
+    if (isset($entity_patterns['bundles'])) {
+      $bundle_info = $entity_manager->getBundleInfo($entity_type);
+      foreach ($entity_patterns['bundles'] as $bundle => $bundle_patterns) {
+        if (empty($bundle_patterns['default'])) {
+          // This bundle does not define a pattern. Move on to the next one.
+          continue;
+        }
+
+        if (isset($bundle_info[$bundle])) {
+          // This is a pattern for a bundle, such as "node_article".
+          $pattern = PathautoPattern::create([
+            'id' => $entity_type . '_' . $bundle,
+            'label' => $entity_label . ' ' . $bundle_info[$bundle]['label'],
+            'type' => 'canonical_entities:' . $entity_type,
+            'pattern' => $bundle_patterns['default'],
+            'weight' => -5,
+          ]);
+
+          // Add the bundle condition.
+          $pattern->addSelectionCondition([
+            'id' => 'entity_bundle:' . $entity_type,
+            'bundles' => array($bundle),
+            'negate' => FALSE,
+            'context_mapping' => [ $entity_type => $entity_type ],
+          ]);
+
+          $pattern->save();
+        }
+        else {
+          // This is either a language dependent pattern such as "article_es" or
+          // an unknown bundle or langcode. Let's figure it out.
+          $matches = NULL;
+          $langcode = NULL;
+          preg_match('/^(.*)_([a-z-]*)$/', $bundle, $matches);
+          if (count($matches) == 3) {
+            list(, $extracted_bundle, $langcode) = $matches;
+            $language = $language_manager->getLanguage($langcode);
+          }
+          // Validate bundle, langcode and language.
+          if (!isset($bundle_info[$extracted_bundle]) || ($langcode == NULL) || ($language == NULL)) {
+            $messages[] = t('Unrecognized entity bundle @entity:@bundle was not processed. It defines the following patterns: @patterns', array(
+              '@entity' => $entity_type,
+              '@bundle' => $bundle,
+              '@patterns' => print_r($entity_patterns, TRUE),
+            ));
+            continue;
+          }
+
+          // This is a pattern for a bundle and a language, such as "node_article_es".
+          $pattern = PathautoPattern::create([
+            'id' => $entity_type . '_' . $extracted_bundle . '_' . str_replace('-', '_', $langcode),
+            'label' => $entity_label . ' ' . $bundle_info[$extracted_bundle]['label'] . ' ' . $language->getName(),
+            'type' => 'canonical_entities:' . $entity_type,
+            'pattern' => $bundle_patterns['default'],
+            'weight' => -10,
+          ]);
+
+          // Add the bundle condition.
+          $pattern->addSelectionCondition([
+            'id' => 'entity_bundle:' . $entity_type,
+            'bundles' => array($extracted_bundle => $extracted_bundle),
+            'negate' => FALSE,
+            'context_mapping' => [ $entity_type => $entity_type ],
+          ]);
+
+          // Add the language condition.
+          $language_mapping = $entity_type . ':' . $entity_type_manager->getDefinition($entity_type)->getKey('langcode') . ':language';
+          $pattern->addSelectionCondition([
+            'id' => 'language',
+            'langcodes' => [ $langcode => $langcode ],
+            'negate' => FALSE,
+            'context_mapping' => [
+              'language' => $language_mapping,
+            ]
+          ]);
+
+          // Add the context relationship for this language.
+          $new_definition = new ContextDefinition('language', 'Language');
+          $new_context = new Context($new_definition);
+          $pattern->addContext($language_mapping, $new_context);
+
+          $pattern->save();
+        }
+      }
     }
   }
 
-  return 'Your Pathauto taxonomy and forum patterns have been corrected. You may wish to regenerate your taxonomy and forum term URL aliases.';
-}
+  // 3. Delete the old configuration object that stores patterns.
+  $config->delete();
 
-/**
- * Build a list of Drupal 6 tokens and their Drupal 7 token names.
- */
-function _pathauto_upgrade_token_list() {
-  $tokens = array(
-    //'catpath' => 'node:term-lowest:parent:path][node:term-lowest',
-    //'catalias' => 'node:term-lowest:path',
-    //'termpath' => 'term:parent:path][term:name',
-    //'termalias' => 'term:url:alias',
-    //'bookpathalias' => 'node:book:parent:path',
-  );
+  // 4. Print out messages.
+  if (!empty($messages)) {
+    return implode('</br>', $messages);
+  }
 }
