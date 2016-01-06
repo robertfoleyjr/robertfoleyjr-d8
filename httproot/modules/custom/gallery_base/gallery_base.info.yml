@@ -1,4 +1,4 @@
-name: 'Gallery Base'
+name: 'Gallery - Base'
 description: 'Provides the base entitles for gallery and image.'
 type: module
 core: 8.x
