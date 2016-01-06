@@ -34,3 +34,10 @@ xmlrpc.php
 /profiles
 /scripts
 /themes
+
+# system directories
+assets/
+assets/*
+db/*
+docs/*
+
