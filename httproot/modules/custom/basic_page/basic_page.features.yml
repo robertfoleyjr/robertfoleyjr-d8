@@ -1,0 +1,8 @@
+required:
+  - core.base_field_override.node.page.promote
+  - node.type.page
+  - core.entity_form_display.node.page.default
+  - core.entity_view_display.node.page.default
+  - core.entity_view_display.node.page.teaser
+  - field.field.node.page.body
+  - rdf.mapping.node.page

@@ -1,4 +1,3 @@
-bundle: quotes
 required:
   - core.base_field_override.node.quote.promote
   - core.base_field_override.node.quote.title
