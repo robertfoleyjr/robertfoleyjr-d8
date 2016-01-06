@@ -1,0 +1,23 @@
+<?php
+/**
+ * @file
+ * Hook implementations for Menu link config.
+ */
+
+/**
+ * Implements hook_entity_type_build().
+ */
+function menu_link_config_entity_type_build(array &$entity_types) {
+  if (\Drupal::moduleHandler()->moduleExists('menu_ui')) {
+    $entity_types['menu_link_config']->setLinkTemplate('edit-form', '/admin/structure/menu/link/{menu_link_plugin}/edit');
+  }
+}
+
+/**
+ * Implements hook_config_translation_info_alter()
+ */
+function menu_link_config_config_translation_info_alter(&$info) {
+  if (\Drupal::moduleHandler()->moduleExists('menu_ui')) {
+    $info['menu_link_config']['class'] = 'Drupal\menu_link_config\MenuLinkConfigMapper';
+  }
+}

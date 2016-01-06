@@ -1,0 +1,21 @@
+<?php
+
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_requirements().
+ */
+function git_config_requirements($phase) {
+  $requirements = array();
+  $requirements['git-wrapper'] = array(
+    'title' => t('GitWrapper'),
+    'value' => 'master',
+  );
+  if (!class_exists('GitWrapper\GitWrapper')) {
+    $requirements['git-wrapper']['value'] = t('Missing');
+    $url = Url::fromUri('https://github.com/cpliakas/git-wrapper');
+    $requirements['git-wrapper']['description'] = t('You must install the !wrapper PHP component to make use of the git_config module.', array('!wrapper' => \Drupal::l('GitWrapper', $url)));
+    $requirements['git-wrapper']['severity'] =  REQUIREMENT_ERROR;
+  }
+  return $requirements;
+}

@@ -1,0 +1,26 @@
+<?php
+/**
+ * @file
+ * Manage synchronizing configuration from extensions.
+ */
+
+/**
+ * Implements hook_modules_installed().
+ */
+function config_sync_modules_installed($module_names) {
+  config_sync_create_extension_snapshot('module', $module_names);
+}
+
+/**
+ * Implements hook_themes_installed().
+ */
+function config_sync_themes_installed($theme_names) {
+  config_sync_create_extension_snapshot('theme', $theme_names);
+}
+
+/**
+ * Takes a snapshot of a given extension's configuration.
+ */
+function config_sync_create_extension_snapshot($type, $extension_names) {
+  \Drupal::service('config_sync.snapshotter')->createExtensionSnapshotMultiple($type, $extension_names);
+}

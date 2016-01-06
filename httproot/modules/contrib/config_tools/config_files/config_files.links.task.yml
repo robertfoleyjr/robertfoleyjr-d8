@@ -1,0 +1,9 @@
+config_files.settings:
+  route_name: config_files.settings
+  base_route: config.sync
+  title: 'Tools'
+config_files.settings.files:
+  route_name: config_files.settings
+  parent_id: config_files.settings
+  title: 'Files'
+  weight: -100

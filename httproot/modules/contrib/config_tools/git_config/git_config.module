@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * Implements hook_permission().
+ */
+function git_config_permission() {
+  return array(
+    'administer git_config' => array(
+      'title' => t('Administer CMI Git Configuration'),
+      'description' => t('Administer the git configuration for your CMI tracking.'),
+    ),
+  );
+}

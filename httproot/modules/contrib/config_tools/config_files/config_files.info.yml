@@ -1,0 +1,13 @@
+name: Active configuration file handling.
+type: module
+description: 'Allows you to specify an active file directory to save current configuration.'
+package: Configuration
+# version: VERSION
+# core: 8.x
+configure: config_files.settings
+
+# Information added by Drupal.org packaging script on 2014-10-27
+version: '8.x-1.0-alpha3'
+core: '8.x'
+project: 'config_tools'
+datestamp: 1414433031

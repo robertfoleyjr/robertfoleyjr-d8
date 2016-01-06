@@ -1,0 +1,5 @@
+services:
+  git_config.config.events:
+    class: Drupal\git_config\GitConfigEvents
+    tags:
+      - {name: event_subscriber}
