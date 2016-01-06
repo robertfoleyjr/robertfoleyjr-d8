@@ -1,0 +1,6 @@
+token_test.browse:
+  path: '/token_test/browse'
+  defaults:
+    _controller: '\Drupal\token_test\Controller\TokenTreeBrowseController::outputLink'
+  requirements:
+    _access: 'TRUE'

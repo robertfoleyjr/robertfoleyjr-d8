@@ -1,0 +1,5 @@
+menu_link_config.link_add:
+  route_name: menu_link_config.link_add
+  title: 'Add config link'
+  appears_on:
+    - entity.menu.edit_form

@@ -1,0 +1,7 @@
+config_sync.config_sync:
+  path: '/admin/config/development/configuration/sync-extensions'
+  defaults:
+    _form: '\Drupal\config_sync\Form\ConfigSync'
+    _title: 'Synchronize from extensions'
+  requirements:
+    _permission: 'synchronize configuration'

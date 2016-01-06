@@ -1,0 +1,4 @@
+menu_link_config:
+  class: Drupal\menu_link_config\Plugin\Menu\MenuLinkConfig
+  form_class: Drupal\menu_link_config\Plugin\Menu\Form\MenuLinkConfigForm
+  deriver: Drupal\menu_link_config\Plugin\Derivative\MenuLinkConfig

@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * Implements hook_permission().
+ */
+function config_files_permission() {
+  return array(
+    'administer config_files' => array(
+      'title' => t('Administer Configuration Files Settings'),
+      'description' => t('Administer the directory configuration for your active CMI files.'),
+    ),
+  );
+}

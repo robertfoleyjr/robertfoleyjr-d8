@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the config_sync module.
+ */
+
+/**
+ * Implements hook_install().
+ *
+ * Takes a snapshot of configuration from extensions already installed on the
+ * site.
+ */
+function config_sync_install() {
+  \Drupal::service('config_sync.snapshotter')->createFullSnapshot();
+}

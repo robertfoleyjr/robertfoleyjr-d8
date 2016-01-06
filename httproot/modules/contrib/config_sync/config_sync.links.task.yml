@@ -1,0 +1,4 @@
+config_sync.config_sync:
+  route_name: config_sync.config_sync
+  title: 'Syncronize from Extensions'
+  base_route: config.sync

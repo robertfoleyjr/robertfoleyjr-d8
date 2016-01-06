@@ -1,0 +1,37 @@
+menu_link_config.menu_link_config.*:
+  type: config_entity
+  label: 'View'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    title:
+      type: text
+      label: 'Title'
+    route_name:
+      type: string
+      label: 'Route name'
+    route_parameters:
+      type: sequence
+      label: 'Route parameters'
+    options:
+      type: sequence
+      label: 'Options'
+    expanded:
+      type: boolean
+      label: 'Expanded'
+    menu_name:
+      type: string
+      label: 'Menu name'
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    parent:
+      type: string
+      label: 'Parent'
+    weight:
+      type: integer
+      label: 'Weight'
+    description:
+      type: text
+      label: 'Description'
