@@ -1,0 +1,106 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.gallery.body
+    - field.field.node.gallery.field_author
+    - field.field.node.gallery.field_child_display_options
+    - field.field.node.gallery.field_child_galleries
+    - field.field.node.gallery.field_media
+    - field.field.node.gallery.field_tags
+    - field.field.node.gallery.field_teaser_active
+    - field.field.node.gallery.field_teaser_description
+    - field.field.node.gallery.field_teaser_image
+    - node.type.gallery
+  module:
+    - field_group
+    - image
+    - options
+    - text
+    - user
+third_party_settings:
+  field_group:
+    group_teaser:
+      children:
+        - field_teaser_active
+        - field_teaser_description
+        - field_teaser_image
+      parent_name: ''
+      weight: 2
+      label: Teaser
+      format_type: fieldset
+      format_settings:
+        label: Teaser
+        id: ''
+        classes: ''
+        description: ''
+id: node.gallery.default
+targetEntityType: node
+bundle: gallery
+mode: default
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 3
+    settings: {  }
+    third_party_settings: {  }
+  field_author:
+    weight: 0
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    type: author
+  field_child_display_options:
+    weight: 7
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: list_default
+  field_child_galleries:
+    weight: 8
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  field_media:
+    weight: 9
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  field_tags:
+    weight: 1
+    label: inline
+    settings:
+      link: false
+    third_party_settings: {  }
+    type: entity_reference_label
+  field_teaser_active:
+    weight: 4
+    label: above
+    settings:
+      format: default
+      format_custom_false: ''
+      format_custom_true: ''
+    third_party_settings: {  }
+    type: boolean
+  field_teaser_description:
+    weight: 5
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    type: string
+  field_teaser_image:
+    weight: 6
+    label: above
+    settings:
+      image_style: ''
+      image_link: ''
+    third_party_settings: {  }
+    type: image
+hidden:
+  links: true

@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_teaser_active
+    - node.type.gallery
+id: node.gallery.field_teaser_active
+field_name: field_teaser_active
+entity_type: node
+bundle: gallery
+label: 'Teaser Active'
+description: ''
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean
