@@ -217,7 +217,14 @@
  *   );
  * @endcode
  */
-$databases = array();
+$databases['default']['default'] = array(
+      'driver' => 'mysql',
+      'database' => 'd8.robertfoleyjr.dev',
+      'username' => 'drupal8user',
+      'password' => 'password',
+      'host' => 'localhost',
+      'prefix' => '',
+    );
 
 /**
  * Location of the site configuration files.
@@ -285,7 +292,7 @@ $config_directories = array();
  *   $settings['hash_salt'] = file_get_contents('/home/example/salt.txt');
  * @endcode
  */
-$settings['hash_salt'] = '';
+$settings['hash_salt'] = 'j9jC8eAklunUHmU1LyBCZkN2pgfTHkA4bnFyDEYE-MeTTOA8JIPMBbat7a9CqrkdTrTyhKXJGg';
 
 /**
  * Deployment identifier.
@@ -709,6 +716,18 @@ $settings['container_yamls'][] = __DIR__ . '/services.yml';
  *
  * Keep this code block at the end of this file to take full effect.
  */
-# if (file_exists(__DIR__ . '/settings.local.php')) {
-#   include __DIR__ . '/settings.local.php';
-# }
+ if (file_exists(__DIR__ . '/settings.local.php')) {
+   include __DIR__ . '/settings.local.php';
+ }
+$databases['default']['default'] = array (
+  'database' => 'd8.robertfoleyjr.dev',
+  'username' => 'drupal8user',
+  'password' => 'password',
+  'prefix' => '',
+  'host' => 'localhost',
+  'port' => '3306',
+  'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
+  'driver' => 'mysql',
+);
+$settings['install_profile'] = 'standard';
+$config_directories['sync'] = 'sites/default/files/config_dGWvff1PiJb1gM7Fb6wDsxTK9vmNHjR6RThPPZO_N4pyCFhU9UZQcRqOG59EUYmYcMEwiRSz4w/sync';
