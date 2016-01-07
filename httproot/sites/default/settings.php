@@ -717,16 +717,10 @@ $settings['container_yamls'][] = __DIR__ . '/services.yml';
  * Keep this code block at the end of this file to take full effect.
  */
 
-$databases['default']['default'] = array (
-  'database' => 'd8.robertfoleyjr.dev',
-  'username' => 'drupal8user',
-  'password' => 'password',
-  'prefix' => '',
-  'host' => 'localhost',
-  'port' => '3306',
-  'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
-  'driver' => 'mysql',
-);
+/* 
+ * Drupal 8 Database
+ */
+$databases['default']['default'] = array ();
 
 $settings['install_profile'] = 'standard';
 
