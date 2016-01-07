@@ -4,8 +4,8 @@ description: 'Test module for Field Group'
 package: 'Fields'
 type: module
 hidden: TRUE
-# Information added by Drupal.org packaging script on 2016-01-05
-version: '8.x-1.0-rc4+4-dev'
+# Information added by Drupal.org packaging script on 2016-01-06
+version: '8.x-1.0-rc4+5-dev'
 core: '8.x'
 project: 'field_group'
-datestamp: 1452035645
+datestamp: 1452116672
