@@ -217,14 +217,7 @@
  *   );
  * @endcode
  */
-$databases['default']['default'] = array(
-      'driver' => 'mysql',
-      'database' => 'd8.robertfoleyjr.dev',
-      'username' => 'drupal8user',
-      'password' => 'password',
-      'host' => 'localhost',
-      'prefix' => '',
-    );
+$databases['default']['default'] = array();
 
 /**
  * Location of the site configuration files.
@@ -716,17 +709,6 @@ $settings['container_yamls'][] = __DIR__ . '/services.yml';
  *
  * Keep this code block at the end of this file to take full effect.
  */
-
-$databases['default']['default'] = array (
-  'database' => 'd8.robertfoleyjr.dev',
-  'username' => 'drupal8user',
-  'password' => 'password',
-  'prefix' => '',
-  'host' => 'localhost',
-  'port' => '3306',
-  'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
-  'driver' => 'mysql',
-);
 
 $settings['install_profile'] = 'standard';
 
