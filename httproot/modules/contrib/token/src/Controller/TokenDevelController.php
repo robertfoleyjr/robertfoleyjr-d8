@@ -81,12 +81,6 @@ class TokenDevelController extends ControllerBase {
     $this->moduleHandler()->loadInclude('token', 'pages.inc');
     $entity_type = $entity->getEntityTypeId();
 
-    $header = [
-      $this->t('Token'),
-      $this->t('Value'),
-    ];
-    $rows = [];
-
     $token_type = $this->entityMapper->getTokenTypeForEntityType($entity_type);
     $options = [
       'flat' => TRUE,
@@ -94,29 +88,24 @@ class TokenDevelController extends ControllerBase {
       'data' => [$token_type => $entity],
     ];
 
-    $tree = $this->treeBuilder->buildTree($token_type, $options);
-    foreach ($tree as $token => $token_info) {
-      if (!empty($token_info['restricted'])) {
-        continue;
-      }
-      if (!isset($token_info['value']) && !empty($token_info['parent']) && !isset($tree[$token_info['parent']]['value'])) {
-        continue;
-      }
-      $row = _token_token_tree_format_row($token, $token_info);
-      unset($row['data']['description']);
-      unset($row['data']['name']);
-      $rows[] = $row;
-    }
+    $token_tree = [
+      $token_type => [
+        'tokens' => $this->treeBuilder->buildTree($token_type, $options),
+      ],
+    ];
+//    foreach ($tree as $token => $token_info) {
+//      if (!isset($token_info['value']) && !empty($token_info['parent']) && !isset($tree[$token_info['parent']]['value'])) {
+//        continue;
+//      }
+//    }
 
     $build['tokens'] = [
-      '#theme' => 'tree_table',
-      '#header' => $header,
-      '#rows' => $rows,
-      '#attributes' => ['class' => ['token-tree']],
+      '#type' => 'token_tree_table',
+      '#show_restricted' => FALSE,
+      '#skip_empty_values' => TRUE,
+      '#token_tree' => $token_tree,
+      '#columns' => ['token', 'value'],
       '#empty' => $this->t('No tokens available.'),
-      '#attached' => [
-        'library' => ['token/token'],
-      ],
     ];
 
     return $build;

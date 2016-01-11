@@ -60,16 +60,55 @@ trait TokenTreeTestTrait {
    *   in test output.
    */
   protected function assertTokenInTree($token, $parent = '', $message = '', $group = 'Other') {
-    $xpath = "//tr";
-    if ($parent) {
-      $xpath .= '[contains(@class, "child-of-token-' . $parent . ' ")]';
-    }
-    $xpath .= '/td[contains(@class, "token-key") and text() = "' . $token . '"]';
+    $xpath = $this->getXpathForTokenInTree($token, $parent);
 
     if (!$message) {
       $message = "Token $token found.";
     }
 
     $this->assertIdentical(1, count($this->xpath($xpath)), $message, $group);
+  }
+
+  /**
+   * Check to see if the specified token is present in the token browser.
+   *
+   * @param $token
+   *   The token name with the surrounding square brackets [].
+   * @param string $parent
+   *   (optional) The parent CSS identifier of this token.
+   * @param string $message
+   *   (optional) A message to display with the assertion.
+   * @param string $group
+   *   (optional) The group this message is in, which is displayed in a column
+   *   in test output.
+   */
+  protected function assertTokenNotInTree($token, $parent = '', $message = '', $group = 'Other') {
+    $xpath = $this->getXpathForTokenInTree($token, $parent);
+
+    if (!$message) {
+      $message = "Token $token not found.";
+    }
+
+    $this->assertIdentical(0, count($this->xpath($xpath)), $message, $group);
+  }
+
+  /**
+   * Get xpath to check for token in tree.
+   *
+   * @param $token
+   *   The token name with the surrounding square brackets [].
+   * @param string $parent
+   *   (optional) The parent CSS identifier of this token.
+   *
+   * @return string
+   *   The xpath to check for the token and parent.
+   */
+  protected function getXpathForTokenInTree($token, $parent = '') {
+    $xpath = "//tr";
+    if ($parent) {
+      $xpath .= '[contains(@class, "child-of-token-' . $parent . ' ")]';
+    }
+    $xpath .= '/td[contains(@class, "token-key") and text() = "' . $token . '"]';
+    return $xpath;
   }
 }

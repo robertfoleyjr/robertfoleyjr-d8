@@ -2,16 +2,16 @@
 
 /**
  * @file
- * Contains \Drupal\token\Tests\TokenUnitTest.
+ * Contains \Drupal\Tests\token\Kernel\UnitTest.
  */
-namespace Drupal\token\Tests;
+namespace Drupal\Tests\token\Kernel;
 
 /**
  * Test basic, low-level token functions.
  *
  * @group token
  */
-class TokenUnitTest extends TokenKernelTestBase {
+class UnitTest extends KernelTestBase {
 
   /**
    * @var \Drupal\token\Token

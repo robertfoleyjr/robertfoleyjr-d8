@@ -2,17 +2,17 @@
 
 /**
  * @file
- * Contains \Drupal\token\Tests\TokenDateTest.
+ * Contains \Drupal\Tests\token\Kernel\DateTest.
  */
 
-namespace Drupal\token\Tests;
+namespace Drupal\Tests\token\Kernel;
 
 /**
  * Tests date tokens.
  *
  * @group token
  */
-class TokenDateTest extends TokenKernelTestBase {
+class DateTest extends KernelTestBase {
 
   /**
    * Modules to enable.

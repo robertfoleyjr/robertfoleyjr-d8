@@ -126,6 +126,25 @@ function field_group_form_alter(array &$form, FormStateInterface $form_state) {
 }
 
 /**
+ * Implements hook_inline_entity_form_entity_form_alter().
+ */
+function field_group_inline_entity_form_entity_form_alter(&$entity_form, FormStateInterface $form_state) {
+
+  // Attach the fieldgroups to current entity form.
+  $context = [
+    'entity_type' => $entity_form['#entity']->getEntityTypeId(),
+    'bundle' => $entity_form['#entity']->bundle(),
+    'entity' => $entity_form['#entity'],
+    'context' => 'form',
+    'display_context' => 'form',
+    'mode' => 'default',
+  ];
+
+  field_group_attach_groups($entity_form, $context);
+  $entity_form['#pre_render'][] = 'field_group_form_pre_render';
+}
+
+/**
  * Implements hook_entity_display_build_alter().
  */
 function field_group_entity_display_build_alter(&$element, $context) {

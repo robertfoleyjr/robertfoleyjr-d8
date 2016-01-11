@@ -53,7 +53,7 @@ class YouTube extends ProviderPluginBase {
    * {@inheritdoc}
    */
   public static function getIdFromInput($input) {
-    preg_match('/^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)(?<id>[0-9A-Za-z_-]*)/', $input, $matches);
+    preg_match('/^https?:\/\/(www\.)?(youtube\.com\/watch\?.*v=|youtu\.be\/)(?<id>[0-9A-Za-z_-]*)/', $input, $matches);
     return isset($matches['id']) ? $matches['id'] : FALSE;
   }
 

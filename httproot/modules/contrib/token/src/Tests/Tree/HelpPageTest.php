@@ -59,5 +59,9 @@ class HelpPageTest extends TokenTestBase {
     $this->assertTokenInTree('[current-page:url:unaliased]', 'current-page--url');
     $this->assertTokenInTree('[current-page:url:unaliased:args]', 'current-page--url--unaliased');
     $this->assertTokenInTree('[user:original:account-name]', 'user--original');
+
+    // Assert some of the restricted tokens to ensure they are shown.
+    $this->assertTokenInTree('[user:one-time-login-url]', 'user');
+    $this->assertTokenInTree('[user:original:cancel-url]', 'user--original');
   }
 }

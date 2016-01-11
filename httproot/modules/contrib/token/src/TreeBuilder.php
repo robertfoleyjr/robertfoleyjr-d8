@@ -51,6 +51,77 @@ class TreeBuilder implements TreeBuilderInterface {
   /**
    * {@inheritdoc}
    */
+  public function buildRenderable(array $token_types, array $options = []) {
+    // Set default options.
+    $options += [
+      'global_types' => TRUE,
+      'click_insert' => TRUE,
+      'show_restricted' => FALSE,
+      'recursion_limit' => 3,
+    ];
+
+    $info = $this->tokenService->getInfo();
+    if ($options['global_types']) {
+      $token_types = array_merge($token_types, $this->tokenService->getGlobalTokenTypes());
+    }
+
+    $element = array(
+      /*'#cache' => array(
+        'cid' => 'tree-rendered:' . hash('sha256', serialize(array('token_types' => $token_types, 'global_types' => NULL) + $variables)),
+        'tags' => array(Token::TOKEN_INFO_CACHE_TAG),
+      ),*/
+    );
+
+    // @todo Find a way to use the render cache for this.
+    /*if ($cached_output = token_render_cache_get($element)) {
+      return $cached_output;
+    }*/
+
+    $tree_options = [
+      'flat' => TRUE,
+      'restricted' => $options['show_restricted'],
+      'depth' => $options['recursion_limit'],
+    ];
+
+    $token_tree = [];
+    foreach ($info['types'] as $type => $type_info) {
+      if (!in_array($type, $token_types)) {
+        continue;
+      }
+
+      $token_tree[$type] = $type_info;
+      $token_tree[$type]['tokens'] = $this->buildTree($type, $tree_options);
+    }
+
+    $element += [
+      '#type' => 'token_tree_table',
+      '#token_tree' => $token_tree,
+      '#show_restricted' => $options['show_restricted'],
+      '#click_insert' => $options['click_insert'],
+      '#columns' => ['name', 'token', 'description'],
+      '#empty' => t('No tokens available'),
+    ];
+
+    return $element;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildAllRenderable(array $options = []) {
+    $info = $this->tokenService->getInfo();
+    $token_types = array_keys($info['types']);
+
+    // Disable merging in global types as we will be adding in all token types
+    // explicitly. There is no difference in leaving this set to TRUE except for
+    // an additional method call which is unnecessary.
+    $options['global_types'] = FALSE;
+    return $this->buildRenderable($token_types, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function buildTree($token_type, array $options = []) {
     $options += [
       'restricted' => FALSE,
