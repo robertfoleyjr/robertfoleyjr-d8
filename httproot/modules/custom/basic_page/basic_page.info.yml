@@ -1,7 +1,0 @@
-name: 'Basic Page - base'
-type: module
-core: 8.x
-dependencies:
-  - node
-  - standard
-version: 8.x-1.0
