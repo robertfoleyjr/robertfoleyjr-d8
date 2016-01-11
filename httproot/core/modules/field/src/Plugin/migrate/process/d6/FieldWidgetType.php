@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\field\Plugin\migrate\process\d6\FieldSettings.
+ * Contains \Drupal\field\Plugin\migrate\process\d6\FieldWidgetType.
  */
 
 namespace Drupal\field\Plugin\migrate\process\d6;
@@ -16,13 +16,13 @@ use Drupal\migrate\Row;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Get the field settings.
+ * Get the field instance widget type.
  *
  * @MigrateProcessPlugin(
- *   id = "field_settings"
+ *   id = "field_instance_widget_type"
  * )
  */
-class FieldSettings extends ProcessPluginBase implements ContainerFactoryPluginInterface {
+class FieldWidgetType extends ProcessPluginBase implements ContainerFactoryPluginInterface {
 
   /**
    * The cckfield plugin manager.
@@ -64,66 +64,38 @@ class FieldSettings extends ProcessPluginBase implements ContainerFactoryPluginI
    * {@inheritdoc}
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    list($field_type, $global_settings, $source_field_type) = $value;
+    $source_widget_type = $row->getSourceProperty('widget_type');
+    $source_field_type = $row->getSourceProperty('type');
 
     try {
       return $this->cckPluginManager->createInstance($source_field_type)
-        ->transformFieldStorageSettings($row);
+        ->transformWidgetType($row);
     }
     catch (PluginNotFoundException $e) {
-      return $this->getSettings($field_type, $global_settings);
+      return $this->getWidget($source_widget_type);
     }
   }
 
   /**
-   * Merge the default D8 and specified D6 settings.
+   * Returns widget for a given source widget type.
    *
-   * @param string $field_type
-   *   The field type.
-   * @param array $global_settings
-   *   The field settings.
+   * @param $source_widget_type
    *
-   * @return array
-   *   A valid array of settings.
+   * @return string|null
    */
-  public function getSettings($field_type, $global_settings) {
-    $allowed_values = [];
-    if (isset($global_settings['allowed_values'])) {
-      $list = explode("\n", $global_settings['allowed_values']);
-      $list = array_map('trim', $list);
-      $list = array_filter($list, 'strlen');
-      switch ($field_type) {
-        case 'list_string':
-        case 'list_integer':
-        case 'list_float':
-          foreach ($list as $value) {
-            $value = explode("|", $value);
-            $allowed_values[$value[0]] = isset($value[1]) ? $value[1] : $value[0];
-          }
-          break;
-
-        default:
-          $allowed_values = $list;
-      }
-    }
-
-    $settings = array(
-      'datetime' => array('datetime_type' => 'datetime'),
-      'list_string' => array(
-        'allowed_values' => $allowed_values,
-      ),
-      'list_integer' => array(
-        'allowed_values' => $allowed_values,
-      ),
-      'list_float' => array(
-        'allowed_values' => $allowed_values,
-      ),
-      'boolean' => array(
-        'allowed_values' => $allowed_values,
-      ),
-    );
-
-    return isset($settings[$field_type]) ? $settings[$field_type] : array();
+  protected function getWidget($source_widget_type) {
+    $map = [
+      'number' => 'number',
+      'email_textfield' => 'email_default',
+      'date_select' => 'datetime_default',
+      'date_text' => 'datetime_default',
+      'imagefield_widget' => 'image_image',
+      'phone_textfield' => 'telephone_default',
+      'optionwidgets_onoff' => 'boolean_checkbox',
+      'optionwidgets_buttons' => 'options_buttons',
+      'optionwidgets_select' => 'options_select',
+    ];
+    return isset($map[$source_widget_type]) ? $map[$source_widget_type] : NULL;
   }
 
 }

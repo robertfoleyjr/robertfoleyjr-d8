@@ -89,4 +89,32 @@ interface MigrateCckFieldInterface extends PluginInspectionInterface {
    */
   public function getFieldType(Row $row);
 
+  /**
+   * Apply any custom transformation to the field storage settings.
+   *
+   * @param \Drupal\migrate\Row $row
+   *   The field being migrated.
+   *
+   * @return array
+   *   The destination storage settings.
+   *
+   * @see Drupal\field\Plugin\migrate\process\d6\FieldSettings::transform
+   * @see Drupal\migrate\Plugin\MigrateProcessInterface::transform
+   */
+  public function transformFieldStorageSettings(Row $row);
+
+  /**
+   * Apply any custom transformation to the field instance settings.
+   *
+   * @param \Drupal\migrate\Row $row
+   *   The field being migrated.
+   *
+   * @return array
+   *   The destination instance settings.
+   *
+   * @see Drupal\field\Plugin\migrate\process\d6\FieldInstanceSettings::transform
+   * @see Drupal\migrate\Plugin\MigrateProcessInterface::transform
+   */
+  public function transformFieldInstanceSettings(Row $row);
+
 }

@@ -7,9 +7,10 @@
 
 namespace Drupal\Tests\field\Unit\Plugin\migrate\process\d6;
 
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\field\Plugin\migrate\process\d6\FieldSettings;
-use Drupal\migrate\Entity\MigrationInterface;
 use Drupal\migrate\MigrateExecutableInterface;
+use Drupal\migrate\Plugin\MigratePluginManager;
 use Drupal\migrate\Row;
 use Drupal\Tests\UnitTestCase;
 
@@ -24,16 +25,22 @@ class FieldSettingsTest extends UnitTestCase {
    *
    * @dataProvider getSettingsProvider
    */
-  public function testGetSettings($field_type, $field_settings, $allowed_values) {
-    $migration = $this->getMock(MigrationInterface::class);
-    $plugin = new FieldSettings([], 'd6_field_settings', [], $migration);
+  public function testGetSettings($field_type, $field_settings, $source_field_type, $allowed_values) {
+    $cck_plugin_manager = $this->getMockBuilder(MigratePluginManager::class)
+      ->disableOriginalConstructor()
+      ->getMock();
+
+    $cck_plugin_manager->method('createInstance')
+      ->willThrowException(new PluginNotFoundException($source_field_type));
+
+    $plugin = new FieldSettings([], 'd6_field_settings', [], $cck_plugin_manager);
 
     $executable = $this->getMock(MigrateExecutableInterface::class);
     $row = $this->getMockBuilder(Row::class)
       ->disableOriginalConstructor()
       ->getMock();
 
-    $result = $plugin->transform([$field_type, $field_settings], $executable, $row, 'foo');
+    $result = $plugin->transform([$field_type, $field_settings, $source_field_type], $executable, $row, 'foo');
     $this->assertSame($allowed_values, $result['allowed_values']);
   }
 
@@ -45,6 +52,7 @@ class FieldSettingsTest extends UnitTestCase {
       array(
         'list_integer',
         array('allowed_values' => "1|One\n2|Two\n3"),
+        'list_integer',
         array(
           '1' => 'One',
           '2' => 'Two',
@@ -54,16 +62,19 @@ class FieldSettingsTest extends UnitTestCase {
       array(
         'list_string',
         array('allowed_values' => NULL),
+        'list_string',
         array(),
       ),
       array(
         'list_float',
         array('allowed_values' => ""),
+        'list_float',
         array(),
       ),
       array(
         'boolean',
         array(),
+        'boolean',
         array(),
       ),
     );

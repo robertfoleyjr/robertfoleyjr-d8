@@ -127,6 +127,6 @@ process:
     source:
       - '@type'
       - global_settings
-
+      - type
 destination:
   plugin: md_entity:field_storage_config

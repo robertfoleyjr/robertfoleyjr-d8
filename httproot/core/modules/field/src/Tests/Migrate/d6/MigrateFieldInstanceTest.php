@@ -91,6 +91,55 @@ class MigrateFieldInstanceTest extends MigrateDrupal6TestBase {
     $this->assertIdentical('default link title', $entity->field_test_link->title, 'Field field_test_link default title is correct.');
     $this->assertIdentical('https://www.drupal.org', $entity->field_test_link->url, 'Field field_test_link default title is correct.');
     $this->assertIdentical([], $entity->field_test_link->options['attributes']);
+
+    // Test node reference to entity reference migration.
+    $field = FieldConfig::load('node.story.field_node_reference');
+    $this->assertIdentical('Node reference', $field->label());
+    $this->assertIdentical('default:node', $field->getSetting('handler'));
+    $expected = [
+      'target_bundles' => []
+    ];
+    $this->assertIdentical($expected, $field->getSetting('handler_settings'));
+
+    // Test node reference to entity reference migration.
+    $field = FieldConfig::load('node.story.field_node_reference_2');
+    $this->assertIdentical('Node reference 2', $field->label());
+    $this->assertIdentical('default:node', $field->getSetting('handler'));
+    $expected = [
+      'target_bundles' => [
+        'article' => 'article',
+      ],
+    ];
+    $this->assertIdentical($expected, $field->getSetting('handler_settings'));
+
+    // Test node reference to entity reference migration.
+    $field = FieldConfig::load('node.story.field_user_reference');
+    $this->assertIdentical('User reference', $field->label());
+    $this->assertIdentical('default:user', $field->getSetting('handler'));
+    $expected = [
+      'include_anonymous' => FALSE,
+      'filter' => [
+        'type' => '_none'
+      ],
+      'target_bundles' => NULL,
+    ];
+    $this->assertIdentical($expected, $field->getSetting('handler_settings'));
+
+    // Test node reference to entity reference migration.
+    $field = FieldConfig::load('node.story.field_user_reference_2');
+    $this->assertIdentical('User reference 2', $field->label());
+    $this->assertIdentical('default:user', $field->getSetting('handler'));
+    $expected = [
+      'include_anonymous' => FALSE,
+      'filter' => [
+        'type' => 'role',
+        'role' => [
+          'migrate_test_role_1' => 'migrate_test_role_1'
+        ],
+      ],
+      'target_bundles' => NULL,
+    ];
+    $this->assertIdentical($expected, $field->getSetting('handler_settings'));
   }
 
   /**
