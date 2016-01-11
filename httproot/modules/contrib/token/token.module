@@ -22,17 +22,14 @@ use Drupal\Core\Url;
  */
 function token_help($route_name, RouteMatchInterface $route_match) {
   if ($route_name == 'help.page.token') {
+    $token_tree = \Drupal::service('token.tree_builder')->buildAllRenderable([
+      'click_insert' => FALSE,
+      'show_restricted' => TRUE,
+    ]);
+
     $output = '<dl>';
     $output .= '<dt>' . t('List of the currently available tokens on this site') . '</dt>';
-    $token_tree = array(
-      '#theme' => 'token_tree',
-      '#token_types' => 'all',
-      '#click_insert' => FALSE,
-      '#show_restricted' => TRUE,
-    );
-    /** @var \Drupal\Core\Render\RendererInterface $renderer */
-    $renderer = \Drupal::service('renderer');
-    $output .= '<dd>' . $renderer->render($token_tree) . '</dd>';
+    $output .= '<dd>' . \Drupal::service('renderer')->render($token_tree) . '</dd>';
     $output .= '</dl>';
     return $output;
   }
@@ -49,28 +46,6 @@ function _token_core_supported_modules() {
  * Implements hook_theme().
  */
 function token_theme() {
-  $info['tree_table'] = array(
-    'variables' => array(
-      'header' => array(),
-      'rows' => array(),
-      'attributes' => array(),
-      'empty' => '',
-      'caption' => '',
-    ),
-    'function' => 'theme_tree_table',
-    'file' => 'token.pages.inc',
-  );
-  $info['token_tree'] = array(
-    'variables' => array(
-      'token_types' => array(),
-      'global_types' => TRUE,
-      'click_insert' => TRUE,
-      'show_restricted' => FALSE,
-      'recursion_limit' => 3,
-    ),
-    'function' => 'theme_token_tree',
-    'file' => 'token.pages.inc',
-  );
   $info['token_tree_link'] = [
     'variables' => [
       'token_types' => [],
@@ -80,7 +55,7 @@ function token_theme() {
       'recursion_limit' => 3,
       'text' => NULL,
       'options' => [],
-    ] + $info['token_tree']['variables'],
+    ],
     'file' => 'token.pages.inc',
   ];
 
@@ -199,42 +174,12 @@ function token_clear_cache() {
 }
 
 /**
- * Return an array of entity type to token type mappings.
- *
- * Why do we need this? Because when the token API was moved to core we did not
- * re-use the entity type as the base name for taxonomy terms and vocabulary
- * tokens.
- *
- * @see token_entity_info_alter()
- * @see http://drupal.org/node/737726
- *
- * @deprecated
- */
-function token_get_entity_mapping($value_type = 'token', $value = NULL, $fallback = FALSE) {
-  /** @var \Drupal\token\TokenEntityMapperInterface $mapper */
-  $mapper = \Drupal::service('token.entity_mapper');
-
-  if (empty($value)) {
-    $mappings = $mapper->getEntityTypeMappings();
-    return $value_type == 'token' ? array_flip($mappings) : $mappings;
-  }
-
-  switch ($value_type) {
-    case 'token':
-      return $mapper->getEntityTypeForTokenType($value, $fallback);
-
-    case 'entity':
-      return $mapper->getTokenTypeForEntityType($value, $fallback);
-  }
-}
-
-/**
  * Implements hook_entity_type_alter().
  *
  * Because some token types to do not match their entity type names, we have to
  * map them to the proper type. This is purely for other modules' benefit.
  *
- * @see token_get_entity_mapping()
+ * @see \Drupal\token\TokenEntityMapperInterface::getEntityTypeMappings()
  * @see http://drupal.org/node/737726
  */
 function token_entity_type_alter(array &$entity_types) {

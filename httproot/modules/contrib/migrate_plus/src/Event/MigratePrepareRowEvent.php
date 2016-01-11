@@ -7,8 +7,6 @@
 
 namespace Drupal\migrate_plus\Event;
 
-use Drupal\migrate\Entity\MigrationInterface;
-use Drupal\migrate\MigrateSkipRowException;
 use Drupal\migrate\Plugin\MigrateSourceInterface;
 use Drupal\migrate\Row;
 use Symfony\Component\EventDispatcher\Event;

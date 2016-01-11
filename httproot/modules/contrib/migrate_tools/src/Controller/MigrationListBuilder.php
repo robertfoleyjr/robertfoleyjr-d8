@@ -8,7 +8,6 @@ namespace Drupal\migrate_tools\Controller;
 
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\migrate\Entity\MigrationInterface;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityHandlerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -38,6 +37,8 @@ class MigrationListBuilder extends ConfigEntityListBuilder implements EntityHand
    *   The entity type definition.
    * @param \Drupal\Core\Entity\EntityStorageInterface $storage
    *   The entity storage class.
+   * @param \Drupal\Core\Routing\CurrentRouteMatch $current_route_match
+   *   The Current route match service.
    */
   public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, CurrentRouteMatch $current_route_match) {
     parent::__construct($entity_type, $storage);
@@ -78,7 +79,7 @@ class MigrationListBuilder extends ConfigEntityListBuilder implements EntityHand
   /**
    * Builds a row for an entity in the entity listing.
    *
-   * @param EntityInterface $migration
+   * @param \Drupal\migrate\Entity\MigrationInterface $migration
    *   The entity for which to build the row.
    *
    * @return array

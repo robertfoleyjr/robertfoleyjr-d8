@@ -62,6 +62,29 @@ class TreeTest extends TokenTestBase {
   }
 
   /**
+   * Test various tokens that are possible on the site.
+   */
+  public function testGlobalTokens() {
+    $this->drupalGet($this->getTokenTreeUrl());
+
+    $this->assertTokenGroup('Current date');
+    $this->assertTokenGroup('Site information');
+
+    // Assert that non-global tokens are not listed.
+    $this->assertTokenNotInTree('[user:account-name]', 'user');
+    $this->assertTokenNotInTree('[user:original:account-name]', 'user--original');
+
+    // Assert some of the global tokens, just to be sure.
+    $this->assertTokenInTree('[current-date:html_date]', 'current-date');
+    $this->assertTokenInTree('[current-date:html_week]', 'current-date');
+
+    $this->assertTokenInTree('[current-user:account-name]', 'current-user');
+
+    $this->assertTokenInTree('[current-page:url:unaliased]', 'current-page--url');
+    $this->assertTokenInTree('[current-page:url:unaliased:args]', 'current-page--url--unaliased');
+  }
+
+  /**
    * Tests if the token browser displays the user tokens.
    */
   public function testUserTokens() {
@@ -71,6 +94,17 @@ class TreeTest extends TokenTestBase {
 
     $this->assertTokenInTree('[user:account-name]', 'user');
     $this->assertTokenInTree('[user:original:account-name]', 'user--original');
+
+    // Assert some of the restricted tokens to ensure they are not shown.
+    $this->assertTokenNotInTree('[user:one-time-login-url]', 'user');
+    $this->assertTokenNotInTree('[user:original:cancel-url]', 'user--original');
+
+    // Request with show_restricted set to TRUE to show restricted tokens and
+    // check for them.
+    $this->drupalGet($this->getTokenTreeUrl(['token_types' => ['user'], 'show_restricted' => TRUE]));
+    $this->assertEqual('MISS', $this->drupalGetHeader('x-drupal-dynamic-cache'), 'Cache was not hit');
+    $this->assertTokenInTree('[user:one-time-login-url]', 'user');
+    $this->assertTokenInTree('[user:original:cancel-url]', 'user--original');
   }
 
   /**

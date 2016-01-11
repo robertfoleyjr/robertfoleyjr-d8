@@ -792,7 +792,7 @@ function token_tokens($type, array $tokens, array $data = array(), array $option
   }
 
   // Entity tokens.
-  if (!empty($data[$type]) && $entity_type = token_get_entity_mapping('token', $type)) {
+  if (!empty($data[$type]) && $entity_type = \Drupal::service('token.entity_mapper')->getEntityTypeForTokenType($type)) {
     /* @var \Drupal\Core\Entity\EntityInterface $entity */
     $entity = $data[$type];
 
@@ -923,7 +923,7 @@ function token_tokens($type, array $tokens, array $data = array(), array $option
 
   // If $type is a token type, $data[$type] is empty but $data[$entity_type] is
   // not, re-run token replacements.
-  if (empty($data[$type]) && ($entity_type = token_get_entity_mapping('token', $type)) && $entity_type != $type && !empty($data[$entity_type]) && empty($options['recursive'])) {
+  if (empty($data[$type]) && ($entity_type = \Drupal::service('token.entity_mapper')->getEntityTypeForTokenType($type)) && $entity_type != $type && !empty($data[$entity_type]) && empty($options['recursive'])) {
     $data[$type] = $data[$entity_type];
     $options['recursive'] = TRUE;
     $replacements += \Drupal::moduleHandler()->invokeAll('tokens', array($type, $tokens, $data, $options, $bubbleable_metadata));
@@ -1157,7 +1157,7 @@ function field_token_info_alter(&$info) {
     }
 
     // Make sure a token type exists for this entity.
-    $token_type = token_get_entity_mapping('entity', $entity_type_id);
+    $token_type = \Drupal::service('token.entity_mapper')->getTokenTypeForEntityType($entity_type_id);
     if (empty($token_type)) {
       continue;
     }

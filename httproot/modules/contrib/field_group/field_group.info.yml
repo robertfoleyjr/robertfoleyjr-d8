@@ -8,7 +8,7 @@ dependencies:
   - field
 
 # Information added by Drupal.org packaging script on 2016-01-06
-version: '8.x-1.0-rc4+5-dev'
+version: '8.x-1.0-rc4+6-dev'
 core: '8.x'
 project: 'field_group'
-datestamp: 1452116672
+datestamp: 1452121286

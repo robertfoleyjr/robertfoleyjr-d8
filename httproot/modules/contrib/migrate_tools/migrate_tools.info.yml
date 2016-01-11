@@ -6,8 +6,8 @@ package: Migration
 dependencies:
   - migrate_plus
 
-# Information added by Drupal.org packaging script on 2015-12-08
-version: '8.x-1.0-beta1+4-dev'
+# Information added by Drupal.org packaging script on 2016-01-10
+version: '8.x-1.0-beta1+7-dev'
 core: '8.x'
 project: 'migrate_tools'
-datestamp: 1449544141
+datestamp: 1452449940

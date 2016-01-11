@@ -20,7 +20,6 @@ use Drupal\migrate_plus\Event\MigrateEvents as MigratePlusEvents;
 use Drupal\migrate\Event\MigrateMapSaveEvent;
 use Drupal\migrate\Event\MigrateMapDeleteEvent;
 use Drupal\migrate\Event\MigrateImportEvent;
-use Drupal\migrate\Event\MigratePostRowSaveEvent;
 use Drupal\migrate_plus\Event\MigratePrepareRowEvent;
 
 class MigrateExecutable extends MigrateExecutableBase {
@@ -102,7 +101,6 @@ class MigrateExecutable extends MigrateExecutableBase {
     $this->listeners[MigrateEvents::POST_IMPORT] = [$this, 'onPostImport'];
     $this->listeners[MigrateEvents::POST_ROLLBACK] = [$this, 'onPostRollback'];
     $this->listeners[MigrateEvents::PRE_ROW_SAVE] = [$this, 'onPreRowSave'];
-    $this->listeners[MigrateEvents::POST_ROW_SAVE] = [$this, 'onPostRowSave'];
     $this->listeners[MigrateEvents::POST_ROW_DELETE] = [$this, 'onPostRowDelete'];
     $this->listeners[MigratePlusEvents::PREPARE_ROW] = [$this, 'onPrepareRow'];
     foreach ($this->listeners as $event => $listener) {
@@ -305,23 +303,6 @@ class MigrateExecutable extends MigrateExecutableBase {
   }
 
   /**
-   * React to item import.
-   *
-   * @param \Drupal\migrate\Event\MigratePostRowSaveEvent $event
-   *   The post-save event.
-   */
-  public function onPostRowSave(MigratePostRowSaveEvent $event) {
-    if ($this->feedback && ($this->counter) && $this->counter % $this->feedback == 0) {
-      $this->progressMessage(FALSE);
-      $this->resetCounters();
-    }
-    $this->counter++;
-    if ($this->itemLimit && $this->counter >= $this->itemLimit) {
-      $event->getMigration()->interruptMigration(MigrationInterface::RESULT_COMPLETED);
-    }
-  }
-
-  /**
    * React to item rollback.
    *
    * @param \Drupal\migrate\Event\MigrateRowDeleteEvent $event
@@ -339,6 +320,9 @@ class MigrateExecutable extends MigrateExecutableBase {
    *
    * @param \Drupal\migrate_plus\Event\MigratePrepareRowEvent $event
    *   The prepare-row event.
+   *
+   * @throws \Drupal\migrate\MigrateSkipRowException
+   *
    */
   public function onPrepareRow(MigratePrepareRowEvent $event) {
     if ($this->idlist) {
@@ -348,6 +332,15 @@ class MigrateExecutable extends MigrateExecutableBase {
         throw new MigrateSkipRowException(NULL, FALSE);
       }
     }
+    if ($this->feedback && ($this->counter) && $this->counter % $this->feedback == 0) {
+      $this->progressMessage(FALSE);
+      $this->resetCounters();
+    }
+    $this->counter++;
+    if ($this->itemLimit && $this->counter >= $this->itemLimit) {
+      $event->getMigration()->interruptMigration(MigrationInterface::RESULT_COMPLETED);
+    }
+
   }
 
 }

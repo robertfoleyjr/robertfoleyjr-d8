@@ -64,6 +64,11 @@ class ProviderUrlParseTest extends UnitTestCase {
         'https://youtube.com/watch?v=fdbFVWupSsw&some_param=value&t=150',
         'fdbFVWupSsw',
       ],
+      'YouTube: Added Query String in first position' => [
+        'Drupal\video_embed_field\Plugin\video_embed_field\Provider\YouTube',
+        'https://youtube.com/watch?feature=player_detailpage&v=fdbFV_Wup-Ssw',
+        'fdbFV_Wup-Ssw',
+      ],
       'YouTube: Short URL Added Query String' => [
         'Drupal\video_embed_field\Plugin\video_embed_field\Provider\YouTube',
         'https://youtu.be/fdbFVWupSsw?some_param=other&another=something&t=55',
