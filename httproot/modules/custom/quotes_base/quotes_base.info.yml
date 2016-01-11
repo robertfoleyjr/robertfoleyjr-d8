@@ -1,7 +1,0 @@
-name: 'Quotes - Base'
-description: 'Base Quote feature set'
-type: module
-core: 8.x
-dependencies:
-  - node
-version: 8.x-1.0
