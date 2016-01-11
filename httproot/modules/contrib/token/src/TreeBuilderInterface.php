@@ -44,4 +44,39 @@ interface TreeBuilderInterface {
    *   The flattened version of the tree.
    */
   public function flattenTree(array $tree);
+
+  /**
+   * Build a render array with token tree built as per specified options.
+   *
+   * @param array $token_types
+   *   An array containing token types that should be shown in the tree.
+   * @param array $options
+   *   (optional) An associative array to control which tokens are shown and
+   *   how. The properties available are:
+   *   - 'global_types' (defaults to TRUE): Show all global token types along
+   *     with the specified types.
+   *   - 'click_insert' (defaults to TRUE): Include classes and caption to show
+   *     allow inserting tokens in fields by clicking on them.
+   *   - 'show_restricted' (defaults to FALSE): Show restricted tokens in the
+   *     tree.
+   *   - 'recursion_limit' (defaults to 3): Only show tokens up to the specified
+   *     depth.
+   *
+   * @return array
+   *   Render array for the token tree.
+   */
+  public function buildRenderable(array $token_types, array $options = []);
+
+  /**
+   * Build a render array with token tree containing all possible tokens.
+   *
+   * @param array $options
+   *   (optional) An associative array to control which tokens are shown and
+   *   how. The properties available are: See
+   *   \Drupal\token\TreeBuilderInterface::buildRenderable() for details.
+   *
+   * @return array
+   *   Render array for the token tree.
+   */
+  public function buildAllRenderable(array $options = []);
 }
