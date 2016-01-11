@@ -1,0 +1,409 @@
+diff --git a/contrib/field_group_migrate/field_group_migrate.info.yml b/contrib/field_group_migrate/field_group_migrate.info.yml
+new file mode 100644
+index 0000000..036e05e
+--- /dev/null
++++ b/contrib/field_group_migrate/field_group_migrate.info.yml
+@@ -0,0 +1,8 @@
++name: 'Field Group Migrate'
++type: module
++description: 'Provides the ability to migrate field groups from D6/D7 to D8.'
++package: Migrate
++version: VERSION
++core: 8.x
++dependencies:
++  - field_group
+diff --git a/contrib/field_group_migrate/migration_templates/d6_field_group_entity_form_display.yml b/contrib/field_group_migrate/migration_templates/d6_field_group_entity_form_display.yml
+new file mode 100644
+index 0000000..22f75cc
+--- /dev/null
++++ b/contrib/field_group_migrate/migration_templates/d6_field_group_entity_form_display.yml
+@@ -0,0 +1,42 @@
++langcode: en
++status: true
++dependencies:
++  config:
++    - migrate.migration.d6_field_instance
++  module:
++    - field_group_migrate
++    - node
++id: d6_field_group_entity_form_display
++migration_tags:
++  - 'Drupal 6'
++label: 'Field groups'
++source:
++  plugin: d6_field_group
++  constants:
++    mode: entity_form_display
++    entity_type: node
++    form_mode: default
++    third_party_settings: {  }
++  database_state_key: migrate_upgrade_6
++process:
++  mode: constants/mode
++  entity_type: constants/entity_type
++  bundle: type_name
++  form_mode: constants/form_mode
++  id:
++    plugin: concat
++    source:
++      - group_name
++    delimiter: .
++  field_group/label: label
++  field_group/weight: weight
++  field_group/children: children
++  field_group/format_type: converted_settings/format_type
++  field_group/format_settings: converted_settings/format_settings
++destination:
++  plugin: field_group_entity_form_display
++template: d6_field_instance_widget_settings
++migration_dependencies:
++  required:
++    - d6_field_instance
++migration_group: null
+diff --git a/contrib/field_group_migrate/migration_templates/d6_field_group_entity_view_display.yml b/contrib/field_group_migrate/migration_templates/d6_field_group_entity_view_display.yml
+new file mode 100644
+index 0000000..d756efe
+--- /dev/null
++++ b/contrib/field_group_migrate/migration_templates/d6_field_group_entity_view_display.yml
+@@ -0,0 +1,38 @@
++langcode: en
++status: true
++dependencies:
++  config:
++    - migrate.migration.d6_field_instance
++  module:
++    - field_group_migrate
++    - node
++id: d6_field_group_entity_view_display
++migration_tags:
++  - 'Drupal 6'
++label: 'Field groups'
++source:
++  plugin: d6_field_group
++  constants:
++    entity_type: node
++    third_party_settings: {  }
++  database_state_key: migrate_upgrade_6
++process:
++  entity_type: constants/entity_type
++  bundle: type_name
++  id:
++    plugin: concat
++    source:
++      - group_name
++    delimiter: .
++  field_group/label: label
++  field_group/weight: weight
++  field_group/children: children
++  field_group/format_type: converted_settings/format_type
++  field_group/format_settings: converted_settings/format_settings
++destination:
++  plugin: field_group_entity_view_display
++template: d6_field_instance_widget_settings
++migration_dependencies:
++  required:
++    - d6_field_instance
++migration_group: null
+diff --git a/contrib/field_group_migrate/src/Plugin/migrate/destination/FieldGroupEntityFormDisplay.php b/contrib/field_group_migrate/src/Plugin/migrate/destination/FieldGroupEntityFormDisplay.php
+new file mode 100644
+index 0000000..333f579
+--- /dev/null
++++ b/contrib/field_group_migrate/src/Plugin/migrate/destination/FieldGroupEntityFormDisplay.php
+@@ -0,0 +1,44 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\field_group_migrate\Plugin\migrate\destination\FieldGroupEntityFormDisplay.
++ */
++
++namespace Drupal\field_group_migrate\Plugin\migrate\destination;
++
++use Drupal\migrate\Plugin\migrate\destination\PerComponentEntityFormDisplay;
++use Drupal\migrate\Row;
++
++/**
++ * This class imports one field_group of an entity form display.
++ *
++ * @MigrateDestination(
++ *   id = "field_group_entity_form_display"
++ * )
++ */
++class FieldGroupEntityFormDisplay extends PerComponentEntityFormDisplay {
++
++  /**
++   * {@inheritdoc}
++   */
++  public function import(Row $row, array $old_destination_id_values = array()) {
++    $values = array();
++    // array_intersect_key() won't work because the order is important because
++    // this is also the return value.
++    foreach (array_keys($this->getIds()) as $id) {
++      $values[$id] = $row->getDestinationProperty($id);
++    }
++    $entity = $this->getEntity($values['entity_type'], $values['bundle'], $values[static::MODE_NAME]);
++    if (!$entity->isNew()) {
++      $entity->setThirdPartySetting('field_group', $row->getDestinationProperty('id'), $row->getDestinationProperty('field_group'));
++      $settings = $row->getDestinationProperty('field_group');
++      if (isset($settings['format_type']) && ($settings['format_type'] == 'no_style' || $settings['format_type'] == 'hidden')) {
++        $entity->unsetThirdPartySetting('field_group', $row->getDestinationProperty('id'));
++      }
++      $entity->save();
++    }
++    return array_values($values);
++  }
++
++}
+diff --git a/contrib/field_group_migrate/src/Plugin/migrate/destination/FieldGroupEntityViewDisplay.php b/contrib/field_group_migrate/src/Plugin/migrate/destination/FieldGroupEntityViewDisplay.php
+new file mode 100644
+index 0000000..23f30b8
+--- /dev/null
++++ b/contrib/field_group_migrate/src/Plugin/migrate/destination/FieldGroupEntityViewDisplay.php
+@@ -0,0 +1,48 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\field_group_migrate\Plugin\migrate\destination\FieldGroupEntityViewDisplay.
++ */
++
++namespace Drupal\field_group_migrate\Plugin\migrate\destination;
++
++use Drupal\migrate\Plugin\migrate\destination\PerComponentEntityDisplay;
++use Drupal\migrate\Row;
++
++/**
++ * This class imports one field_group of an entity form display.
++ *
++ * @MigrateDestination(
++ *   id = "field_group_entity_view_display"
++ * )
++ */
++class FieldGroupEntityViewDisplay extends PerComponentEntityDisplay {
++
++  /**
++   * {@inheritdoc}
++   */
++  public function import(Row $row, array $old_destination_id_values = array()) {
++    $values = array();
++    // array_intersect_key() won't work because the order is important because
++    // this is also the return value.
++    foreach (array_keys($this->getIds()) as $id) {
++      $values[$id] = $row->getDestinationProperty($id);
++    }
++
++    foreach ($row->getSourceProperty('view_modes') as $view_mode => $settings) {
++      $entity = $this->getEntity($values['entity_type'], $values['bundle'], $view_mode);
++      if (!$entity->isNew()) {
++        $settings = array_merge($row->getDestinationProperty('field_group'), $settings);
++        $entity->setThirdPartySetting('field_group', $row->getDestinationProperty('id'), $settings);
++        if (isset($settings['format_type']) && ($settings['format_type'] == 'no_style' || $settings['format_type'] == 'hidden')) {
++          $entity->unsetThirdPartySetting('field_group', $row->getDestinationProperty('id'));
++        }
++        $entity->save();
++      }
++    }
++
++    return array_values($values);
++  }
++
++}
+diff --git a/contrib/field_group_migrate/src/Plugin/migrate/source/d6/FieldGroup.php b/contrib/field_group_migrate/src/Plugin/migrate/source/d6/FieldGroup.php
+new file mode 100644
+index 0000000..ee844a6
+--- /dev/null
++++ b/contrib/field_group_migrate/src/Plugin/migrate/source/d6/FieldGroup.php
+@@ -0,0 +1,193 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\field_group_migrate\Plugin\migrate\source\d6\FieldGroup.
++ */
++
++namespace Drupal\field_group_migrate\Plugin\migrate\source\d6;
++
++use Drupal\migrate\Row;
++use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
++
++/**
++ * Drupal 6 field_group source.
++ *
++ * @MigrateSource(
++ *   id = "d6_field_group"
++ * )
++ */
++class FieldGroup extends DrupalSqlBase {
++
++  /**
++   * {@inheritdoc}
++   */
++  public function query() {
++    $query = $this->select('content_group', 'g')
++    ->fields('g', [
++      'group_type',
++      'type_name',
++      'group_name',
++      'label',
++      'settings',
++      'weight',
++    ]);
++    return $query;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function prepareRow(Row $row) {
++    $query = $this->select('content_group_fields', 'f');
++    $query->fields('f', ['field_name'])
++      ->condition('type_name', $row->getSourceProperty('type_name'))
++      ->condition('group_name', $row->getSourceProperty('group_name'));
++    $fields = $query->execute()->fetchCol();
++    $row->setSourceProperty('children', $fields);
++    $row->setSourceProperty('settings', unserialize($row->getSourceProperty('settings')));
++
++    switch ($row->getSourceProperty('constants/mode')) {
++      case 'entity_form_display':
++        $this->transformEntityFormDisplaySettings($row);
++        break;
++
++      case 'entity_view_display':
++        $this->transformEntityViewDisplaySettings($row);
++        break;
++    }
++
++    return parent::prepareRow($row);
++  }
++
++  protected function transformEntityFormDisplaySettings(Row $row) {
++    $row->setSourceProperty('extracted_settings', $row->getSourceProperty('settings/form'));
++    $source_settings = $row->getSourceProperty('extracted_settings');
++    $settings = [
++      'format_type' => 'details',
++      'format_settings' => [],
++    ];
++
++    switch ($source_settings['style']) {
++      case 'no_style':
++        $settings['format_type'] = 'no_style';
++        break;
++
++      case 'simple':
++        $settings['format_type'] = 'html_element';
++        $settings['format_settings']['element'] = 'div';
++        $settings['format_settings']['label_element'] = 'h2';
++        break;
++
++      case 'fieldset':
++        $settings['format_type'] = 'fieldset';
++        break;
++
++      case 'fieldset_collapsible':
++        $settings['format_type'] = 'details';
++        $settings['format_settings']['open'] = TRUE;
++        break;
++
++      case 'fieldset_collapsed':
++        $settings['format_type'] = 'details';
++        $settings['format_settings']['open'] = FALSE;
++        break;
++
++      case 'hidden':
++        $settings['format_type'] = 'hidden';
++        break;
++    }
++
++    $row->setSourceProperty('converted_settings', $settings);
++  }
++
++  protected function transformEntityViewDisplaySettings(Row $row) {
++    $row->setSourceProperty('extracted_settings', $row->getSourceProperty('settings/display'));
++    $view_modes = array_diff(array_keys($row->getSourceProperty('extracted_settings')), ['label', 'description', 'weight']);
++    $view_modes = array_filter($view_modes, function ($value) {
++      return !is_numeric($value);
++    });
++    $row->setSourceProperty('view_mode_keys', $view_modes);
++    $view_modes = [];
++
++    foreach ($row->getSourceProperty('view_mode_keys') as $view_mode) {
++      $source_settings = $row->getSourceProperty('extracted_settings/' . $view_mode);
++      $row->setSourceProperty('view_modes', []);
++      $settings = [
++        'format_type' => 'details',
++        'format_settings' => [],
++      ];
++
++      switch ($source_settings['format']) {
++        case 'no_style':
++          $settings['format_type'] = 'no_style';
++          break;
++
++        case 'simple':
++          $settings['format_type'] = 'html_element';
++          $settings['format_settings']['element'] = 'div';
++          $settings['format_settings']['label_element'] = 'h2';
++          break;
++
++        case 'fieldset':
++          $settings['format_type'] = 'fieldset';
++          break;
++
++        case 'fieldset_collapsible':
++          $settings['format_type'] = 'details';
++          $settings['format_settings']['open'] = TRUE;
++          break;
++
++        case 'fieldset_collapsed':
++          $settings['format_type'] = 'details';
++          $settings['format_settings']['open'] = FALSE;
++          break;
++
++        case 'hidden':
++          $settings['format_type'] = 'hidden';
++          break;
++      }
++
++      /**
++       * @todo: ?
++       */
++      if ($view_mode == 'full') {
++        $view_mode = 'default';
++      }
++
++      // $row->setSourceProperty('view_modes/' . $view_mode, $settings);
++      $view_modes[$view_mode] = $settings;
++    }
++
++    $row->setSourceProperty('view_modes', $view_modes);
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getIds() {
++    $ids['type_name']['type'] = 'string';
++    $ids['type_name']['alias'] = 'g';
++
++    $ids['group_name']['type'] = 'string';
++    $ids['group_name']['alias'] = 'g';
++
++    return $ids;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function fields() {
++    $fields = [
++      'group_type',
++      'type_name',
++      'group_name',
++      'label',
++      'settings',
++      'weight'
++    ];
++    return array_combine($fields, $fields);
++  }
++
++}
