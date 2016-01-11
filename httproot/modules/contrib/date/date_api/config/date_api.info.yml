@@ -1,0 +1,6 @@
+year:
+  max: '4000'
+  min: '1'
+php_min_year: '1901'
+db_tz_support: '-1'
+version: '8.1'

@@ -1,0 +1,892 @@
+<?php
+
+/**
+ * @file
+ * This module will make the date API available to other modules.
+ * Designed to provide a light but flexible assortment of functions
+ * and constants, with more functionality in additional files that
+ * are not loaded unless other modules specifically include them.
+ */
+
+use Drupal\Core\Datetime\DrupalDateTime;
+
+/**
+ * Format options array.
+ *
+ * TODO Remove any formats not supported by the widget, if any.
+ */
+function date_datepicker_formats() {
+  $formats = str_replace('i', 'i:s', array_keys(system_get_date_formats('short')));
+  $formats = drupal_map_assoc($formats);
+  return $formats;
+}
+
+function date_get_format($instance, $part = 'all') {
+  switch ($instance['widget']['type']) {
+    case 'date_select':
+      $date_format = $instance['widget']['date_date_format'];
+      $time_format = '';
+      break;
+    case 'date_popup':
+      $date_format = datetime_get_format('date', $instance['widget']['date_date_format']);
+      $time_format = datetime_get_format('date', $instance['widget']['date_time_format']);
+      break;
+  }
+  switch ($part) {
+    case 'date':
+      return $date_format;
+    case 'time':
+      return $time_format;
+    default:
+      return trim($date_format . ' ' . $time_format);
+  }
+  return $format;
+}
+
+/**
+ * Converts a date format to an ordered array of parts.
+ *
+ * Example:
+ *   date_format_order('m/d/Y H:i')
+ *   returns
+ *     array(
+ *       0 => 'month',
+ *       1 => 'day',
+ *       2 => 'year',
+ *       3 => 'hour',
+ *       4 => 'minute',
+ *     );
+ *
+ * @param string $format
+ *   A date format string.
+ *
+ * @return array
+ *   An array of ordered elements from the given format string that
+ *   includes only the date parts that exist in that string.
+ */
+function date_format_order($format) {
+  $order = array();
+  $max = strlen($format);
+  for ($i = 0; $i < $max; $i++) {
+    switch ($format[$i]) {
+      case 'd':
+      case 'j':
+        $order[] = 'day';
+        break;
+      case 'F':
+      case 'M':
+      case 'm':
+      case 'n':
+        $order[] = 'month';
+        break;
+      case 'Y':
+      case 'y':
+        $order[] = 'year';
+        break;
+      case 'g':
+      case 'G':
+      case 'h':
+      case 'H':
+        $order[] = 'hour';
+        break;
+      case 'i':
+        $order[] = 'minute';
+        break;
+      case 's':
+        $order[] = 'second';
+        break;
+    }
+  }
+  return $order;
+}
+
+/**
+ * Set up some constants.
+ *
+ * Includes standard date types, format strings, strict regex strings for ISO
+ * and DATETIME formats (seconds are optional).
+ *
+ * The loose regex will find any variety of ISO date and time, with or
+ * without time, with or without dashes and colons separating the elements,
+ * and with either a 'T' or a space separating date and time.
+ */
+const DATE_ISO = 'date';
+const DATE_UNIX = 'timestamp';
+
+const DATE_FORMAT_ISO = "Y-m-d\TH:i:s";
+const DATE_FORMAT_UNIX = "U";
+const DATE_FORMAT_DATETIME = "Y-m-d H:i:s";
+const DATE_FORMAT_ICAL = "Ymd\THis";
+const DATE_FORMAT_ICAL_DATE = "Ymd";
+const DATE_FORMAT_DATE = 'Y-m-d';
+
+/**
+ * Implements hook_help().
+ */
+function date_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#date':
+      $output = '';
+      if (module_exists('date_tools')) {
+        $output .= '<h3>Date Tools</h3>' . t('Dates and calendars can be complicated to set up. The !date_wizard makes it easy to create a simple date content type and with a date field. ', array('!date_wizard' => l(t('Date wizard'), 'admin/config/date/tools/date_wizard')));
+      }
+      else {
+        $output .= '<h3>Date Tools</h3>' . t('Dates and calendars can be complicated to set up. If you enable the Date Tools module, it provides a Date Wizard that makes it easy to create a simple date content type with a date field. ');
+      }
+
+      $output .= '<h2>More Information</h2><p>' . t('Complete documentation for the Date and Date API modules is available at <a href="@link">http://drupal.org/node/92460</a>.', array('@link' => 'http://drupal.org/node/262062')) . '</p>';
+
+      return $output;
+      break;
+  }
+}
+
+/**
+ * Implements hook_menu().
+ *
+ * Creates a 'Date API' section on the administration page for Date
+ * modules to use for their configuration and settings.
+ */
+function date_api_menu() {
+  $items['admin/config/date'] = array(
+    'title' => 'Date API',
+    'description' => 'Settings for modules the use the Date API.',
+    'position' => 'left',
+    'weight' => -10,
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+  );
+  return $items;
+}
+
+/**
+ * Determines if the date element needs to be processed.
+ *
+ * Helper function to see if date element has been hidden by FAPI to see if it
+ * needs to be processed or just pass the value through. This is needed since
+ * normal date processing explands the date element into parts and then
+ * reconstructs it, which is not needed or desirable if the field is hidden.
+ *
+ * @param array $element
+ *   The date element to check.
+ *
+ * @return bool
+ *   TRUE if the element is effectively hidden, FALSE otherwise.
+ */
+function date_hidden_element($element) {
+  // @TODO What else needs to be tested to see if dates are hidden or disabled?
+  if ((isset($element['#access']) && empty($element['#access']))
+    || !empty($element['#programmed'])
+    || in_array($element['#type'], array('hidden', 'value'))) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Helper function for getting the format string for a date type.
+ *
+ * @param string $type
+ *   A date type format name.
+ *
+ * @return string
+ *   A date type format, like 'Y-m-d H:i:s'.
+ */
+function date_type_format($type) {
+  switch ($type) {
+    case DATE_ISO:
+      return DATE_FORMAT_ISO;
+    case DATE_UNIX:
+      return DATE_FORMAT_UNIX;
+    case DATE_DATETIME:
+      return DATE_FORMAT_DATETIME;
+    case DATE_ICAL:
+      return DATE_FORMAT_ICAL;
+  }
+}
+
+/**
+ * Formats a time interval with granularity, including past and future context.
+ *
+ * @param object $date
+ *   The current date object.
+ * @param int $granularity
+ *   (optional) Number of units to display in the string. Defaults to 2.
+ *
+ * @return string
+ *   A translated string representation of the interval.
+ *
+ * @see format_interval()
+ */
+function date_format_interval($date, $granularity = 2, $display_ago = TRUE) {
+  // If no date is sent, then return nothing.
+  if (empty($date)) {
+    return NULL;
+  }
+
+  $interval = REQUEST_TIME - $date->format('U');
+  if ($interval > 0) {
+    return $display_ago ? t('!time ago', array('!time' => format_interval($interval, $granularity))) :
+      t('!time', array('!time' => format_interval($interval, $granularity)));
+  }
+  else {
+    return format_interval(abs($interval), $granularity);
+  }
+}
+
+/**
+ * Implements hook_element_info().
+ */
+function date_api_element_info() {
+  module_load_include('inc', 'date_api', 'date_api_elements');
+  return _date_api_element_info();
+}
+
+/**
+ * Implements hook_theme().
+ */
+function date_api_theme($existing, $type, $theme, $path) {
+
+  $base = array(
+    'file' => 'theme.inc',
+    'path' => "$path/theme",
+  );
+  return array(
+    'date_nav_title' => $base + array('variables' => array('granularity' => NULL, 'view' => NULL, 'link' => NULL, 'format' => NULL)),
+    'date_timezone' => $base + array('render element' => 'element'),
+    'date_select' => $base + array('render element' => 'element'),
+    'date_select_element' => $base + array('render element' => 'element'),
+    'date_textfield_element' => $base + array('render element' => 'element'),
+    'date_part_hour_prefix' => $base + array('render element' => 'element'),
+    'date_part_minsec_prefix' => $base + array('render element' => 'element'),
+    'date_part_label_year' => $base + array('variables' => array('date_part' => NULL, 'element' => NULL)),
+    'date_part_label_month' => $base + array('variables' => array('date_part' => NULL, 'element' => NULL)),
+    'date_part_label_day' => $base + array('variables' => array('date_part' => NULL, 'element' => NULL)),
+    'date_part_label_hour' => $base + array('variables' => array('date_part' => NULL, 'element' => NULL)),
+    'date_part_label_minute' => $base + array('variables' => array('date_part' => NULL, 'element' => NULL)),
+    'date_part_label_second' => $base + array('variables' => array('date_part' => NULL, 'element' => NULL)),
+    'date_part_label_ampm' => $base + array('variables' => array('date_part' => NULL, 'element' => NULL)),
+    'date_part_label_timezone' => $base + array('variables' => array('date_part' => NULL, 'element' => NULL)),
+    'date_part_label_date' => $base + array('variables' => array('date_part' => NULL, 'element' => NULL)),
+    'date_part_label_time' => $base + array('variables' => array('date_part' => NULL, 'element' => NULL)),
+    'date_views_filter_form' => $base + array('template' => 'date-views-filter-form', 'render element' => 'form'),
+    'date_calendar_day' => $base + array('variables' => array('date' => NULL)),
+    'date_time_ago' => $base + array('variables' => array('start_date' => NULL, 'end_date' => NULL, 'interval' => NULL)),
+    'datelist' => array(
+      'render element' => 'element',
+    ),
+  );
+}
+
+/**
+ * Returns HTML for a date selection form element.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ *     Properties used: #title, #value, #options, #description, #required,
+ *     #attributes.
+ *
+ * @ingroup themeable
+ */
+function theme_datelist($variables) {
+
+  $element = $variables['element'];
+
+  $attributes = array();
+  if (isset($element['#id'])) {
+    $attributes['id'] = $element['#id'];
+  }
+  if (!empty($element['#attributes']['class'])) {
+    $attributes['class'] = (array) $element['#attributes']['class'];
+  }
+  $attributes['class'][] = 'container-inline';
+
+  return '<div' . new Attribute($attributes) . '>' . drupal_render_children($element) . '</div>';
+}
+
+/**
+ * Function to figure out which local timezone applies to a date and select it.
+ *
+ * @param string $handling
+ *   The timezone handling.
+ * @param string $timezone
+ *   (optional) A timezone string. Defaults to an empty string.
+ *
+ * @return string
+ *   The timezone string.
+ */
+function date_get_timezone($handling, $timezone = '') {
+  switch ($handling) {
+    case 'date':
+      $timezone = !empty($timezone) ? $timezone : drupal_get_user_timezone();
+      break;
+    case 'utc':
+      $timezone = 'UTC';
+      break;
+    default:
+      $timezone = drupal_get_user_timezone();
+  }
+  return $timezone > '' ? $timezone : drupal_get_user_timezone();
+}
+
+/**
+ * Function to figure out which db timezone applies to a date and select it.
+ *
+ * @param string $handling
+ *   The timezone handling.
+ * @param string $timezone
+ *   (optional) A timezone string. Defaults to an empty string.
+ *
+ * @return string
+ *   The timezone string.
+ */
+function date_get_timezone_db($handling, $timezone = '') {
+  switch ($handling) {
+    case 'none':
+      $timezone = drupal_get_user_timezone();
+      break;
+    default:
+      $timezone = 'UTC';
+      break;
+  }
+  return $timezone > '' ? $timezone : 'UTC';
+}
+
+/**
+ * Helper function for converting back and forth from '+1' to 'First'.
+ */
+function date_order_translated() {
+  return array(
+    '+1' => t('First', array(), array('context' => 'date_order')),
+    '+2' => t('Second', array(), array('context' => 'date_order')),
+    '+3' => t('Third', array(), array('context' => 'date_order')),
+    '+4' => t('Fourth', array(), array('context' => 'date_order')),
+    '+5' => t('Fifth', array(), array('context' => 'date_order')),
+    '-1' => t('Last', array(), array('context' => 'date_order_reverse')),
+    '-2' => t('Next to last', array(), array('context' => 'date_order_reverse')),
+    '-3' => t('Third from last', array(), array('context' => 'date_order_reverse')),
+    '-4' => t('Fourth from last', array(), array('context' => 'date_order_reverse')),
+    '-5' => t('Fifth from last', array(), array('context' => 'date_order_reverse')),
+  );
+}
+
+/**
+ * Creates an array of ordered strings, using English text when possible.
+ */
+function date_order() {
+  return array(
+    '+1' => 'First',
+    '+2' => 'Second',
+    '+3' => 'Third',
+    '+4' => 'Fourth',
+    '+5' => 'Fifth',
+    '-1' => 'Last',
+    '-2' => '-2',
+    '-3' => '-3',
+    '-4' => '-4',
+    '-5' => '-5',
+  );
+}
+
+/**
+ * Tests validity of a date range string.
+ *
+ * @param string $string
+ *   A min and max year string like '-3:+1'a.
+ *
+ * @return bool
+ *   TRUE if the date range is valid, FALSE otherwise.
+ */
+function date_range_valid($string) {
+  $matches = preg_match('@^(\-[0-9]+|[0-9]{4}):([\+|\-][0-9]+|[0-9]{4})$@', $string);
+  return $matches < 1 ? FALSE : TRUE;
+}
+
+/**
+ * Converts a min and max year into a string like '-3:+1'.
+ *
+ * @param array $years
+ *   A numerically indexed array, containing a minimum and maximum year.
+ *
+ * @return string
+ *   A min and max year string like '-3:+1'.
+ */
+function date_range_string($years) {
+  $this_year = date_format(new DrupalDateTime(), 'Y');
+
+  if ($years[0] < $this_year) {
+    $min = '-' . ($this_year - $years[0]);
+  }
+  else {
+    $min = '+' . ($years[0] - $this_year);
+  }
+
+  if ($years[1] < $this_year) {
+    $max = '-' . ($this_year - $years[1]);
+  }
+  else {
+    $max = '+' . ($years[1] - $this_year);
+  }
+
+  return $min . ':' . $max;
+}
+
+/**
+ * Temporary helper to re-create equivalent of content_database_info().
+ */
+function date_api_database_info($field, $revision = FIELD_LOAD_CURRENT) {
+  return array(
+    'columns' => $field['storage']['details']['sql'][$revision],
+    'table' => _field_sql_storage_tablename($field),
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for system_regional_settings().
+ *
+ * Add a form element to configure whether or not week numbers are ISO-8601, the
+ * default is FALSE (US/UK/AUS norm).
+ */
+function date_api_form_system_regional_settings_alter(&$form, &$form_state, $form_id) {
+  $form['locale']['date_api_iso8601'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Use ISO-8601 week numbers'),
+    '#default_value' => config('date_api.settings')->get('iso8601'),
+    '#description' => t('IMPORTANT! If checked, First day of week MUST be set to Monday'),
+  );
+  $form['#validate'][] = 'date_api_form_system_settings_validate';
+  $form['#submit'][] = 'date_api_form_system_settings_submit';
+}
+
+/**
+ * Validate that the option to use ISO weeks matches first day of week choice.
+ */
+function date_api_form_system_settings_validate(&$form, &$form_state) {
+  $form_values = $form_state['values'];
+  if ($form_values['date_api_iso8601'] && $form_values['date_first_day'] != 1) {
+    form_set_error('date_first_day', t('When using ISO-8601 week numbers, the first day of the week must be set to Monday.'));
+  }
+}
+
+/**
+ * Store the Date API 8601 week numbers setting.
+ */
+function date_api_form_system_settings_submit($form, &$form_state) {
+  $form_values = $form_state['values'];
+  config('date_api.settings')->set('iso8601', $form_values['date_api_iso8601'])->save();
+}
+
+/**
+ * Creates an array of date format types for use as an options list.
+ */
+function date_format_type_options() {
+  $options = array();
+  $time = date_example_date();
+  $format_types = system_get_date_types();
+  if (!empty($format_types)) {
+    foreach ($format_types as $type => $type_info) {
+      $options[$type] = $type_info['title'] . ' (' . format_date($time->format('U'), $type) . ')';
+    }
+  }
+  return $options;
+}
+
+/**
+ * Creates an example date.
+ *
+ * This ensures a clear difference between month and day, and 12 and 24 hours.
+ */
+function date_example_date() {
+  $now = new DrupalDateTime();
+  if (date_format($now, 'M') == date_format($now, 'F')) {
+    date_modify($now, '+1 month');
+  }
+  if (date_format($now, 'm') == date_format($now, 'd')) {
+    date_modify($now, '+1 day');
+  }
+  if (date_format($now, 'H') == date_format($now, 'h')) {
+    date_modify($now, '+12 hours');
+  }
+  return $now;
+}
+
+/**
+ * Determine if a start/end date combination qualify as 'All day'.
+ *
+ * @param string $string1
+ *   A string date in datetime format for the 'start' date.
+ * @param string $string2
+ *   A string date in datetime format for the 'end' date.
+ * @param string $granularity
+ *   (optional) The granularity of the date. Defaults to 'second'.
+ * @param int $increment
+ *   (optional) The increment of the date. Defaults to 1.
+ *
+ * @return bool
+ *   TRUE if the date is all day, FALSE otherwise.
+ */
+function date_is_all_day($string1, $string2, $granularity = 'second', $increment = 1) {
+  if (empty($string1) || empty($string2)) {
+    return FALSE;
+  }
+  elseif (!in_array($granularity, array('hour', 'minute', 'second'))) {
+    return FALSE;
+  }
+
+  preg_match('/([0-9]{4}-[0-9]{2}-[0-9]{2}) (([0-9]{2}):([0-9]{2}):([0-9]{2}))/', $string1, $matches);
+  $count = count($matches);
+  $date1 = $count > 1 ? $matches[1] : '';
+  $time1 = $count > 2 ? $matches[2] : '';
+  $hour1 = $count > 3 ? intval($matches[3]) : 0;
+  $min1 = $count > 4 ? intval($matches[4]) : 0;
+  $sec1 = $count > 5 ? intval($matches[5]) : 0;
+  preg_match('/([0-9]{4}-[0-9]{2}-[0-9]{2}) (([0-9]{2}):([0-9]{2}):([0-9]{2}))/', $string2, $matches);
+  $count = count($matches);
+  $date2 = $count > 1 ? $matches[1] : '';
+  $time2 = $count > 2 ? $matches[2] : '';
+  $hour2 = $count > 3 ? intval($matches[3]) : 0;
+  $min2 = $count > 4 ? intval($matches[4]) : 0;
+  $sec2 = $count > 5 ? intval($matches[5]) : 0;
+  if (empty($date1) || empty($date2)) {
+    return FALSE;
+  }
+  if (empty($time1) || empty($time2)) {
+    return FALSE;
+  }
+
+  $calendar = system_calendar();
+  $tmp = $calendar->seconds('s', TRUE, $increment);
+  $max_seconds = intval(array_pop($tmp));
+  $tmp = $calendar->minutes('i', TRUE, $increment);
+  $max_minutes = intval(array_pop($tmp));
+
+  // See if minutes and seconds are the maximum allowed for an increment or the
+  // maximum possible (59), or 0.
+  switch ($granularity) {
+    case 'second':
+      $min_match = $time1 == '00:00:00'
+        || ($hour1 == 0 && $min1 == 0 && $sec1 == 0);
+      $max_match = $time2 == '00:00:00'
+        || ($hour2 == 23 && in_array($min2, array($max_minutes, 59)) && in_array($sec2, array($max_seconds, 59)))
+        || ($hour1 == 0 && $hour2 == 0 && $min1 == 0 && $min2 == 0 && $sec1 == 0 && $sec2 == 0);
+      break;
+    case 'minute':
+      $min_match = $time1 == '00:00:00'
+        || ($hour1 == 0 && $min1 == 0);
+      $max_match = $time2 == '00:00:00'
+        || ($hour2 == 23 && in_array($min2, array($max_minutes, 59)))
+        || ($hour1 == 0 && $hour2 == 0 && $min1 == 0 && $min2 == 0);
+      break;
+    case 'hour':
+      $min_match = $time1 == '00:00:00'
+        || ($hour1 == 0);
+      $max_match = $time2 == '00:00:00'
+        || ($hour2 == 23)
+        || ($hour1 == 0 && $hour2 == 0);
+      break;
+    default:
+      $min_match = TRUE;
+      $max_match = FALSE;
+  }
+
+  if ($min_match && $max_match) {
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Helper function to round minutes and seconds to requested value.
+ */
+function date_increment_round(&$date, $increment) {
+  // Round minutes and seconds, if necessary.
+  if ($date instanceOf DrupalDateTime && $increment > 1) {
+    $day = intval(date_format($date, 'j'));
+    $hour = intval(date_format($date, 'H'));
+    $second = intval(round(intval(date_format($date, 's')) / $increment) * $increment);
+    $minute = intval(date_format($date, 'i'));
+    if ($second == 60) {
+      $minute += 1;
+      $second = 0;
+    }
+    $minute = intval(round($minute / $increment) * $increment);
+    if ($minute == 60) {
+      $hour += 1;
+      $minute = 0;
+    }
+    date_time_set($date, $hour, $minute, $second);
+    if ($hour == 24) {
+      $day += 1;
+      $hour = 0;
+      $year = date_format($date, 'Y');
+      $month = date_format($date, 'n');
+      date_date_set($date, $year, $month, $day);
+    }
+  }
+  return $date;
+}
+
+/**
+ * This function will replace ISO values that have the pattern 9999-00-00T00:00:00
+ * with a pattern like 9999-01-01T00:00:00, to match the behavior of non-ISO
+ * dates and ensure that date objects created from this value contain a valid month
+ * and day. Without this fix, the ISO date '2020-00-00T00:00:00' would be created as
+ * November 30, 2019 (the previous day in the previous month).
+ *
+ * @param string $iso_string
+ *   An ISO string that needs to be made into a complete, valid date.
+ *
+ * @TODO Expand on this to work with all sorts of partial ISO dates.
+ */
+function date_make_iso_valid($iso_string) {
+  // If this isn't a value that uses an ISO pattern, there is nothing to do.
+  if (is_numeric($iso_string) || !preg_match(DATE_REGEX_ISO, $iso_string)) {
+    return $iso_string;
+  }
+  // First see if month and day parts are '-00-00'.
+  if (substr($iso_string, 4, 6) == '-00-00') {
+    return preg_replace('/([\d]{4}-)(00-00)(T[\d]{2}:[\d]{2}:[\d]{2})/', '${1}01-01${3}', $iso_string);
+  }
+  // Then see if the day part is '-00'.
+  elseif (substr($iso_string, 7, 3) == '-00') {
+    return preg_replace('/([\d]{4}-[\d]{2}-)(00)(T[\d]{2}:[\d]{2}:[\d]{2})/', '${1}01${3}', $iso_string);
+  }
+
+  // Fall through, no changes required.
+  return $iso_string;
+}
+
+
+/**
+ * @file
+ * SQL helper for Date API.
+ *
+ * @TODO
+ * Add experimental support for sqlite: http://www.sqlite.org/lang_datefunc.html
+ * and Oracle (http://psoug.org/reference/date_func.html and
+ * http://psoug.org/reference/datatypes.html) date/time functions.
+ */
+
+/**
+ * A helper function to do cross-database concatation of date parts.
+ *
+ * @param array $array
+ *   An array of values to be concatonated in sql.
+ *
+ * @return string
+ *   Correct sql string for database type.
+ */
+function date_sql_concat($array) {
+  switch (db_driver()) {
+    case 'mysql':
+    case 'mysqli':
+      return "CONCAT(" . implode(",", $array) . ")";
+    case 'pgsql':
+      return implode(" || ", $array);
+  }
+}
+
+/**
+ * Helper function to do cross-database NULL replacements
+ *
+ * @param array $array
+ *   An array of values to test for NULL values.
+ *
+ * @return string
+ *   SQL statement to return the first non-NULL value in the list.
+ */
+function date_sql_coalesce($array) {
+  switch (db_driver()) {
+    case 'mysql':
+    case 'mysqli':
+    case 'pgsql':
+      return "COALESCE(" . implode(',', $array) . ")";
+  }
+}
+
+/**
+ * A helper function to do cross-database padding of date parts.
+ *
+ * @param string $str
+ *   A string to apply padding to
+ * @param int $size
+ *   The size the final string should be
+ * @param string $pad
+ *   The value to pad the string with
+ * @param string $side
+ *   The side of the string to pad
+ */
+function date_sql_pad($str, $size = 2, $pad = '0', $side = 'l') {
+  switch ($side) {
+    case 'r':
+      return "RPAD($str, $size, '$pad')";
+    default:
+      return "LPAD($str, $size, '$pad')";
+  }
+}
+
+/**
+   * Calculates the start and end dates for a calendar week.
+   *
+   * The dates are adjusted to use the chosen first day of week
+   * for this site.
+   *
+   * @param int $week
+   *   The week value.
+   * @param int $year
+   *   The year value.
+   *
+   * @return array
+   *   An array containing the start and end dates of a week.
+   */
+function date_calendar_week_range($week, $year) {
+  $min_date = new DrupalDateTime($year . '-01-01 00:00:00');
+
+  // Move to the right week.
+  date_modify($min_date, '+' . strval(7 * ($week - 1)) . ' days');
+
+  // Move backwards to the first day of the week.
+  $first_day = variable_get('date_first_day', 0);
+  $day_wday = date_format($min_date, 'w');
+  date_modify($min_date, '-' . strval((7 + $day_wday - $first_day) % 7) . ' days');
+
+  // Move forwards to the last day of the week.
+  $max_date = clone($min_date);
+  date_modify($max_date, '+7 days');
+
+  if (date_format($min_date, 'Y') != $year) {
+    $min_date = new DrupalDateTime($year . '-01-01 00:00:00');
+  }
+  return array($min_date, $max_date);
+}
+
+/**
+ * Calculates the start and end dates for an ISO week.
+ *
+ * @param int $week
+ *   The week value.
+ * @param int $year
+ *   The year value.
+ *
+ * @return array
+ *   An array containing the start and end dates of an
+ *   ISO week.
+ */
+function date_iso_week_range($week, $year) {
+  // Get to the last ISO week of the previous year.
+  $min_date = new DrupalDateTime(($year - 1) . '-12-28 00:00:00');
+
+  // Find the first day of the first ISO week in the year.
+  date_modify($min_date, '+1 Monday');
+
+  // Jump ahead to the desired week for the beginning of the week range.
+  if ($week > 1) {
+    date_modify($min_date, '+ ' . ($week - 1) . ' weeks');
+  }
+
+  // Move forwards to the last day of the week.
+  $max_date = clone($min_date);
+  date_modify($max_date, '+7 days');
+  return array($min_date, $max_date);
+}
+
+/**
+ * The number of calendar weeks in a year.
+ *
+ * PHP week functions return the ISO week, not the calendar week.
+ *
+ * @param int $year
+ *   A year value.
+ *
+ * @return int
+ *   Number of calendar weeks in selected year.
+ */
+function date_weeks_in_year($year) {
+  $date = new DrupalDateTime(($year + 1) . '-01-01 12:00:00', 'UTC');
+  date_modify($date, '-1 day');
+  return self::calendar_week($date->format('Y-m-d'));
+}
+
+ /**
+ * Identifies the number of ISO weeks in a year for a date.
+ *
+ * December 28 is always in the last ISO week of the year.
+ *
+ * @param mixed $date
+ *   (optional) A date object, timestamp, or a date string.
+ *   Defaults to current date.
+ *
+ * @return integer
+ *   The number of ISO weeks in a year.
+ */
+function date_iso_weeks_in_year($date = NULL) {
+  if (!$date instanceOf DrupalDateTime) {
+    $date = new DrupalDateTime($date);
+  }
+  if ($date instanceOf DrupalDateTime && !$date->hasErrors()) {
+    date_date_set($date, $date->format('Y'), 12, 28);
+    return $date->format('W');
+  }
+  return NULL;
+}
+
+/**
+ * The calendar week number for a date.
+ *
+ * PHP week functions return the ISO week, not the calendar week.
+ *
+ * @param string $date
+ *   A date string in the format Y-m-d.
+ *
+ * @return int
+ *   The calendar week number.
+ */
+function date_calendar_week($date) {
+  $date = substr($date, 0, 10);
+  $parts = explode('-', $date);
+
+  $date = new DrupalDateTime($date . ' 12:00:00', 'UTC');
+
+  // If we are using ISO weeks, this is easy.
+  if (config('date_api.settings')->get('iso8601')) {
+    return intval($date->format('W'));
+  }
+
+  $year_date = new DrupalDateTime($parts[0] . '-01-01 12:00:00', 'UTC');
+  $week = intval($date->format('W'));
+  $year_week = intval(date_format($year_date, 'W'));
+  $date_year = intval($date->format('o'));
+
+  // Remove the leap week if it's present.
+  if ($date_year > intval($parts[0])) {
+    $last_date = clone($date);
+    date_modify($last_date, '-7 days');
+    $week = date_format($last_date, 'W') + 1;
+  }
+  elseif ($date_year < intval($parts[0])) {
+    $week = 0;
+  }
+
+  if ($year_week != 1) {
+    $week++;
+  }
+
+  // Convert to ISO-8601 day number, to match weeks calculated above.
+  $iso_first_day = 1 + (variable_get('date_first_day', 0) + 6) % 7;
+
+  // If it's before the starting day, it's the previous week.
+  if (intval($date->format('N')) < $iso_first_day) {
+    $week--;
+  }
+
+  // If the year starts before, it's an extra week at the beginning.
+  if (intval(date_format($year_date, 'N')) < $iso_first_day) {
+    $week++;
+  }
+
+  return $week;
+}

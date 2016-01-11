@@ -1,0 +1,21 @@
+name = Date Views
+description = Views integration for date fields and date functionality.
+package = Date/Time
+dependencies[] = date_api
+dependencies[] = views
+core = x.x
+
+files[] = includes/date_views_argument_handler.inc
+files[] = includes/date_views_argument_handler_simple.inc
+files[] = includes/date_views_filter_handler.inc
+files[] = includes/date_views_filter_handler_simple.inc
+files[] = includes/date_views.views_default.inc
+files[] = includes/date_views.views.inc
+files[] = includes/date_views_plugin_pager.inc
+
+; Information added by drupal.org packaging script on 2013-09-30
+version = "8.x-1.x-dev"
+core = "8.x"
+project = "date"
+datestamp = "1380568702"
+

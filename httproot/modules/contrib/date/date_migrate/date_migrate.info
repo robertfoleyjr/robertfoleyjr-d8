@@ -1,0 +1,20 @@
+name = Date Migration
+description = Provides support for importing into date fields with the Migrate module.
+core = x.x
+package = Date/Time
+
+dependencies[] = migrate
+dependencies[] = date
+
+; TODO, make node functions conditional so we can remove this.
+dependencies[] = node
+
+files[] = date.migrate.inc
+
+
+; Information added by drupal.org packaging script on 2013-09-30
+version = "8.x-1.x-dev"
+core = "8.x"
+project = "date"
+datestamp = "1380568702"
+

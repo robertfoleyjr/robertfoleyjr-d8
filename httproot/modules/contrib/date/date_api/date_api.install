@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the date_api module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function date_api_install() {
+
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function date_api_uninstall() {
+  cache()->deletePrefix('date_timezone_identifiers_list');
+}
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function date_api_update_last_removed() {
+  return 7001;
+}
+
+/**
+ * Moves Date API informational data from variable to config.
+ */
+function date_api_update_8001() {
+  update_variables_to_config('date_api.info', array(
+    'date_max_year' => 'year.max',
+    'date_min_year' => 'year.min',
+    'date_php_min_year' => 'php_min_year',
+    'date_api_version' => 'version',
+    'date_db_tz_support' => 'db_tz_support',
+  ));
+}
+
+/**
+ * Moves Date API settings from variable to config.
+ */
+function date_api_update_8002() {
+  update_variables_to_config('date_api.settings', array(
+    'date_api_use_iso8601' => 'iso8601',
+  ));
+}
+

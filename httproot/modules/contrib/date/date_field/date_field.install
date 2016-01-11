@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Date Field module.
+ */
+
+/**
+ * Implements hook_field_schema().
+ */
+function date_field_field_schema($field) {
+  switch ($field['settings']['todate']) {
+    case '':
+      $db_columns = array(
+        'value' => array(
+          'description' => 'The date value',
+          'type' => 'varchar',
+          'length' => 20,
+          'not null' => FALSE,
+        ),
+        'data' => array(
+          'description' => 'A serialized array with more date info.',
+          'type' => 'text',
+          'not null' => FALSE,
+        ),
+      );
+      $indexes = array(
+        'value' => 'value',
+      );
+      break;
+    default:
+      $db_columns = array(
+        'value' => array(
+          'description' => 'The start date value',
+          'type' => 'varchar',
+          'length' => 20,
+          'not null' => FALSE,
+        ),
+        'value2' => array(
+          'description' => 'The end date value',
+          'type' => 'varchar',
+          'length' => 20,
+          'not null' => FALSE,
+        ),
+        'data' => array(
+          'description' => 'A serialized array with more date info.',
+          'type' => 'text',
+          'not null' => FALSE,
+        ),
+      );
+      $indexes = array(
+        'value' => 'value',
+        'value2' => 'value2',
+      );
+      break;
+  }
+
+  // If a second date is needed for 'End date', make a copy of the first one.
+  // Timezone and offset columns are used only if date-specific dates are used.
+  if (isset($field['settings']['tz_handling']) && $field['settings']['tz_handling'] == 'date') {
+    $db_columns['offset'] = array(
+      'type' => 'int',
+      'not null' => FALSE,
+    );
+    if (!empty($field['settings']['todate'])) {
+      $db_columns['offset2'] = array('type' => 'int', 'not null' => FALSE);
+    }
+  }
+  return array('columns' => $db_columns, 'indexes' => $indexes);
+}
