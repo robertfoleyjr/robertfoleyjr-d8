@@ -62,10 +62,10 @@ index 0000000..22f75cc
 +migration_group: null
 diff --git a/contrib/field_group_migrate/migration_templates/d6_field_group_entity_view_display.yml b/contrib/field_group_migrate/migration_templates/d6_field_group_entity_view_display.yml
 new file mode 100644
-index 0000000..d756efe
+index 0000000..c756ec5
 --- /dev/null
 +++ b/contrib/field_group_migrate/migration_templates/d6_field_group_entity_view_display.yml
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,40 @@
 +langcode: en
 +status: true
 +dependencies:
@@ -81,10 +81,12 @@ index 0000000..d756efe
 +source:
 +  plugin: d6_field_group
 +  constants:
++    mode: entity_view_display
 +    entity_type: node
 +    third_party_settings: {  }
 +  database_state_key: migrate_upgrade_6
 +process:
++  mode: constants/mode
 +  entity_type: constants/entity_type
 +  bundle: type_name
 +  id:
@@ -106,7 +108,7 @@ index 0000000..d756efe
 +migration_group: null
 diff --git a/contrib/field_group_migrate/src/Plugin/migrate/destination/FieldGroupEntityFormDisplay.php b/contrib/field_group_migrate/src/Plugin/migrate/destination/FieldGroupEntityFormDisplay.php
 new file mode 100644
-index 0000000..333f579
+index 0000000..4324e69
 --- /dev/null
 +++ b/contrib/field_group_migrate/src/Plugin/migrate/destination/FieldGroupEntityFormDisplay.php
 @@ -0,0 +1,44 @@
@@ -143,8 +145,8 @@ index 0000000..333f579
 +    }
 +    $entity = $this->getEntity($values['entity_type'], $values['bundle'], $values[static::MODE_NAME]);
 +    if (!$entity->isNew()) {
-+      $entity->setThirdPartySetting('field_group', $row->getDestinationProperty('id'), $row->getDestinationProperty('field_group'));
 +      $settings = $row->getDestinationProperty('field_group');
++      $entity->setThirdPartySetting('field_group', $row->getDestinationProperty('id'), $settings);
 +      if (isset($settings['format_type']) && ($settings['format_type'] == 'no_style' || $settings['format_type'] == 'hidden')) {
 +        $entity->unsetThirdPartySetting('field_group', $row->getDestinationProperty('id'));
 +      }
