@@ -13,10 +13,12 @@ label: 'Field groups'
 source:
   plugin: d6_field_group
   constants:
+    mode: entity_view_display
     entity_type: node
     third_party_settings: {  }
   database_state_key: migrate_upgrade_6
 process:
+  mode: constants/mode
   entity_type: constants/entity_type
   bundle: type_name
   id:
