@@ -588,6 +588,14 @@ class MigrateUpgradeForm extends FormBase implements ConfirmFormInterface {
       'source_module' => 'profile',
       'destination_module' => 'user',
     ],
+    'd6_field_group_entity_form_display' => [
+      'source_module' => 'fieldgroup',
+      'destination_module' => 'field_group',
+    ],
+    'd6_field_group_entity_view_display' => [
+      'source_module' => 'fieldgroup',
+      'destination_module' => 'field_group',
+    ],
   ];
 
   /**
