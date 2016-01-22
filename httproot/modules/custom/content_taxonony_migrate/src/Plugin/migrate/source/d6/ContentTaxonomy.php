@@ -2,6 +2,7 @@
 /** 
  * @file
  * Contains \Drupal\content_taxonomy_migrate\Plugin\migrate\source\d6\ContentTaxonomy
+ * 
  */
 
 namespace Drupal\content_taxonomy_migrate\source;
@@ -11,8 +12,8 @@ use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 /**
  * Source for content taxonomy fields.
  * 
- * @Migratesource(
- *    id = "ContentTaxonomy"
+ * @MigrateSource(
+ *    id = "d6_content_taxonomy"
  * )
  */
 class ContentTaxonomy extends SourcePluginBase {
