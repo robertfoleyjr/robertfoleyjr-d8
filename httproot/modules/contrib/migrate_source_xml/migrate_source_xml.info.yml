@@ -1,0 +1,7 @@
+type: module
+name: Migrate Source XML
+description: 'Migration plugin for XML sources'
+package: Migration
+core: 8.x
+dependencies:
+  - migrate
