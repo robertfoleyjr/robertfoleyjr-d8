@@ -202,7 +202,7 @@ class date_views_argument_handler_simple extends views_handler_argument_date {
     }
     $format = !empty($this->options['title_format_custom']) && !empty($this->options['title_format_custom']) ? $this->options['title_format_custom'] : $this->date_handler->views_formats($this->options['granularity'], 'display');
     $range = $this->date_handler->arg_range($value);
-    return range[0]->format($format);
+    return $range[0]->format($format);
   }
 
   /**
