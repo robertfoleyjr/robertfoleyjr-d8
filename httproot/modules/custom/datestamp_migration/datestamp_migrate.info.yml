@@ -1,8 +1,0 @@
-type: module
-name: 'Migrate datestamp Date Fields'
-description: 'Migrate datestamp date fields to D8'
-package: Migration
-version: VERSION
-core: 8.x
-dependencies:
-  - migrate
