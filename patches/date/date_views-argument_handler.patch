@@ -1,0 +1,13 @@
+diff --git a/date/date_views/includes/date_views_argument_handler_simple.inc b/date/date_views/includes/date_views_argument_handler_simple.inc
+index d12d016..da37d62 100644
+--- a/date/date_views/includes/date_views_argument_handler_simple.inc
++++ b/date/date_views/includes/date_views_argument_handler_simple.inc
+@@ -202,7 +202,7 @@
+     }
+     $format = !empty($this->options['title_format_custom']) && !empty($this->options['title_format_custom']) ? $this->options['title_format_custom'] : $this->date_handler->views_formats($this->options['granularity'], 'display');
+     $range = $this->date_handler->arg_range($value);
+-    return range[0]->format($format);
++    return $range[0]->format($format);
+   }
+ 
+   /**
