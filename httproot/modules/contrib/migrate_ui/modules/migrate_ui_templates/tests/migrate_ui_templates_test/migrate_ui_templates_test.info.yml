@@ -1,0 +1,12 @@
+name: Migrate UI Templates Test Module
+description: A test modle for the Migrate UI Templates
+type: module
+hidden: true
+# core: 8.x
+package: Migrate
+
+# Information added by Drupal.org packaging script on 2015-12-11
+version: '8.x-1.0'
+core: '8.x'
+project: 'migrate_ui'
+datestamp: 1449819241
