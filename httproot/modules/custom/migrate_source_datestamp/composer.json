@@ -1,0 +1,14 @@
+{
+  "name": "drupal/migrate_source_datestamp",
+  "type": "drupal-module",
+  "description": "Provides drupal 6 date datestamp field to drupal 8 date field entity.",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "homepage": "https://www.drupal.org/project/migrate_source_datestamp",
+  "minimum-stability": "dev",
+  "support": {
+    "issues": "http://drupal.org/project/issues/migrate_source_datestamp",
+    "source": "http://cgit.drupalcode.org/migrate_source_datestamp"
+  },
+  "require": { }
+}
