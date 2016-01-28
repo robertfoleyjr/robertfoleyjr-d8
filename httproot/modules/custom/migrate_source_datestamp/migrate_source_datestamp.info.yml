@@ -2,7 +2,7 @@ name: Migrate Source Datestamp
 type: module
 description: Provides drupal 6 date datestamp field to drupal 8 date field entity.
 core: 8.x
-package: Migrate
+package: Migration
 dependencies:
   - migrate
   - migrate_drupal
