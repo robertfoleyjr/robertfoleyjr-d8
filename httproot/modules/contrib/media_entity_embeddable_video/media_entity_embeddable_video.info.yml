@@ -1,0 +1,13 @@
+name: Media entity embeddable video
+description: 'Media entity embeddable vidoe.'
+type: module
+package: Media
+# core: 8.x
+dependencies:
+  - media_entity
+
+# Information added by Drupal.org packaging script on 2016-01-26
+version: '8.x-1.0-beta2'
+core: '8.x'
+project: 'media_entity_embeddable_video'
+datestamp: 1453825142

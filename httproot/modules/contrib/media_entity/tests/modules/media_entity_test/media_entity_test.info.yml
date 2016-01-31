@@ -1,0 +1,12 @@
+name: 'Media entity test'
+type: module
+description: 'Support module for the Media entity module tests.'
+# core: 8.x
+package: Testing
+# version: VERSION
+
+# Information added by Drupal.org packaging script on 2016-01-26
+version: '8.x-1.0-beta2'
+core: '8.x'
+project: 'media_entity'
+datestamp: 1453824644

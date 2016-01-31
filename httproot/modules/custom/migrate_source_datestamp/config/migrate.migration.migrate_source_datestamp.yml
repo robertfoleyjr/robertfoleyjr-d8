@@ -1,0 +1,12 @@
+id: migrate_source_datestamp
+source:
+  plugin: migrate_source_datestamp
+destination:
+  plugin: entity:datetime
+process:
+  id:
+    -
+      plugin: machine_name
+      source: datestamp
+    -
+      plugin: datetime
