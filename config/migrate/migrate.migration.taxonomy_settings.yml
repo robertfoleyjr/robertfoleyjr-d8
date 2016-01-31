@@ -1,0 +1,26 @@
+uuid: 0c564fca-6abc-40bc-860f-153363be7416
+langcode: en
+status: true
+dependencies:
+  module:
+    - migrate_drupal
+    - taxonomy
+id: taxonomy_settings
+migration_tags:
+  - 'Drupal 6'
+  - 'Drupal 7'
+label: 'Taxonomy configuration'
+source:
+  plugin: variable
+  variables:
+    - taxonomy_override_selector
+    - taxonomy_terms_per_page_admin
+  database_state_key: migrate_upgrade_6
+process:
+  override_selector: taxonomy_override_selector
+  terms_per_page_admin: taxonomy_terms_per_page_admin
+destination:
+  plugin: config
+  config_name: taxonomy.settings
+template: taxonomy_settings
+migration_dependencies: {  }

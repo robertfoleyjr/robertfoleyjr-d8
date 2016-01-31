@@ -1,0 +1,25 @@
+uuid: aacdeacf-647d-45f1-ad09-9cffef2b564f
+langcode: en
+status: true
+dependencies:
+  module:
+    - migrate_drupal
+    - system
+id: d6_system_rss
+migration_tags:
+  - 'Drupal 6'
+label: 'RSS configuration'
+source:
+  plugin: variable
+  variables:
+    - feed_default_items
+    - feed_item_length
+  database_state_key: migrate_upgrade_6
+process:
+  items/limit: feed_default_items
+  items/view_mode: feed_item_length
+destination:
+  plugin: config
+  config_name: system.rss
+template: d6_system_rss
+migration_dependencies: {  }

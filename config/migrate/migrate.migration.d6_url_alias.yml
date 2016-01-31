@@ -1,0 +1,31 @@
+uuid: 0cdd6ae0-bd09-4217-8b00-a89d53e76067
+langcode: en
+status: true
+dependencies:
+  module:
+    - path
+id: d6_url_alias
+migration_tags:
+  - 'Drupal 6'
+label: 'URL aliases'
+source:
+  plugin: d6_url_alias
+  constants:
+    slash: /
+  database_state_key: migrate_upgrade_6
+process:
+  source:
+    plugin: concat
+    source:
+      - constants/slash
+      - src
+  alias:
+    plugin: concat
+    source:
+      - constants/slash
+      - dst
+  langcode: language
+destination:
+  plugin: url_alias
+template: d6_url_alias
+migration_dependencies: {  }

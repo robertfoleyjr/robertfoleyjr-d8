@@ -1,0 +1,69 @@
+uuid: ef95a974-d1e7-4ac5-9113-19001dc47722
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.d6_field
+    - migrate.migration.d6_node_type
+    - migrate.migration.d6_user_role
+  module:
+    - field
+    - node
+id: d6_field_instance
+migration_tags:
+  - 'Drupal 6'
+label: 'Field instance configuration'
+source:
+  plugin: d6_field_instance
+  constants:
+    entity_type: node
+  database_state_key: migrate_upgrade_6
+process:
+  field_type_exists:
+    -
+      plugin: migration
+      migration: d6_field
+      source:
+        - field_name
+    -
+      plugin: extract
+      index:
+        - 1
+    -
+      plugin: skip_on_empty
+      method: row
+  entity_type: constants/entity_type
+  field_name: field_name
+  bundle:
+    -
+      plugin: migration
+      migration: d6_node_type
+      source: type_name
+    -
+      plugin: skip_on_empty
+      method: row
+  label: label
+  description: description
+  required: required
+  status: active
+  settings:
+    plugin: d6_field_field_settings
+    source:
+      - widget_type
+      - widget_settings
+      - global_settings
+  default_value_callback: ''
+  default_value:
+    plugin: d6_field_instance_defaults
+    source:
+      - widget_type
+      - widget_settings
+destination:
+  plugin: 'entity:field_config'
+template: d6_field_instance
+migration_dependencies:
+  required:
+    - d6_node_type
+    - d6_field
+    - d6_user_role
+    - d6_node_type

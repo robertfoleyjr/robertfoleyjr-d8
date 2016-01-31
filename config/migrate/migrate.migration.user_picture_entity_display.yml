@@ -1,0 +1,41 @@
+uuid: 33f678c7-a1d9-47d0-8200-c30b14412de0
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.user_picture_field_instance
+  module:
+    - user
+id: user_picture_entity_display
+migration_tags:
+  - 'Drupal 6'
+  - 'Drupal 7'
+label: 'User picture display configuration'
+source:
+  plugin: user_picture_instance
+  constants:
+    entity_type: user
+    bundle: user
+    view_mode: default
+    name: user_picture
+    type: image
+    options:
+      label: hidden
+      settings:
+        image_style: ''
+        image_link: content
+  database_state_key: migrate_upgrade_6
+process:
+  entity_type: constants/entity_type
+  bundle: constants/bundle
+  view_mode: constants/view_mode
+  field_name: constants/name
+  type: constants/type
+  options: constants/options
+  options/type: '@type'
+destination:
+  plugin: component_entity_display
+template: user_picture_entity_display
+migration_dependencies:
+  required:
+    - user_picture_field_instance

@@ -1,0 +1,28 @@
+uuid: 0267b216-a703-40a1-995d-93aab334aec5
+langcode: en
+status: true
+dependencies:
+  module:
+    - block_content
+id: block_content_type
+migration_tags:
+  - 'Drupal 6'
+  - 'Drupal 7'
+label: 'Block content type'
+source:
+  plugin: embedded_data
+  data_rows:
+    -
+      id: basic
+      label: Basic
+  ids:
+    id:
+      type: string
+  database_state_key: migrate_upgrade_6
+process:
+  id: id
+  label: label
+destination:
+  plugin: 'entity:block_content_type'
+template: block_content_type
+migration_dependencies: {  }

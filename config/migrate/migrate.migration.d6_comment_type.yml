@@ -1,0 +1,25 @@
+uuid: 47162ca6-7356-4008-b401-1aa789ab8bc9
+langcode: en
+status: true
+dependencies:
+  module:
+    - comment
+    - node
+id: d6_comment_type
+migration_tags:
+  - 'Drupal 6'
+label: 'Comment type'
+source:
+  plugin: d6_comment_variable_per_comment_type
+  constants:
+    entity_type: node
+  database_state_key: migrate_upgrade_6
+process:
+  target_entity_type_id: constants/entity_type
+  id: comment_type
+  label: label
+  description: description
+destination:
+  plugin: 'entity:comment_type'
+template: d6_comment_type
+migration_dependencies: {  }

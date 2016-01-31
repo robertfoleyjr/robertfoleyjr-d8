@@ -1,0 +1,30 @@
+uuid: 87eecae7-ef7d-4873-9000-fe4a260492ba
+langcode: en
+status: true
+dependencies:
+  module:
+    - migrate_drupal
+    - system
+id: d6_system_file
+migration_tags:
+  - 'Drupal 6'
+label: 'File system configuration'
+source:
+  plugin: variable
+  variables:
+    - file_directory_temp
+    - allow_insecure_uploads
+  database_state_key: migrate_upgrade_6
+process:
+  path/temporary: file_directory_temp
+  allow_insecure_uploads:
+    plugin: static_map
+    source: allow_insecure_uploads
+    map:
+      - false
+      - true
+destination:
+  plugin: config
+  config_name: system.file
+template: d6_system_file
+migration_dependencies: {  }

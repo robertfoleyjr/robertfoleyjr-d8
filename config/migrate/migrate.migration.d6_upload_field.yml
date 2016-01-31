@@ -1,0 +1,33 @@
+uuid: 813efdc8-a0c4-400e-ae07-7f76c543d7c4
+langcode: en
+status: true
+dependencies:
+  module:
+    - field
+    - file
+    - migrate_drupal
+    - node
+id: d6_upload_field
+migration_tags:
+  - 'Drupal 6'
+label: 'Upload field configuration'
+source:
+  plugin: md_empty
+  provider: upload
+  constants:
+    entity_type: node
+    type: file
+    name: upload
+    cardinality: -1
+    display_field: true
+  database_state_key: migrate_upgrade_6
+process:
+  entity_type: constants/entity_type
+  field_name: constants/name
+  type: constants/type
+  cardinality: constants/cardinality
+  settings/display_field: constants/display_field
+destination:
+  plugin: 'md_entity:field_storage_config'
+template: d6_upload_field
+migration_dependencies: {  }

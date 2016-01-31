@@ -1,0 +1,63 @@
+uuid: 496f9225-5dbc-4162-a041-65d43f8bee54
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.d6_field_instance
+  module:
+    - field
+    - node
+id: d6_field_instance_widget_settings
+migration_tags:
+  - 'Drupal 6'
+label: 'Field instance widget configuration'
+source:
+  plugin: d6_field_instance_per_form_display
+  constants:
+    entity_type: node
+    form_mode: default
+    third_party_settings: {  }
+  database_state_key: migrate_upgrade_6
+process:
+  field_type_exists:
+    -
+      plugin: migration
+      migration: d6_field
+      source:
+        - field_name
+    -
+      plugin: extract
+      index:
+        - 1
+    -
+      plugin: skip_on_empty
+      method: row
+  bundle:
+    -
+      plugin: migration
+      migration: d6_node_type
+      source: type_name
+    -
+      plugin: skip_on_empty
+      method: row
+  form_mode: constants/form_mode
+  field_name: field_name
+  entity_type: constants/entity_type
+  options/weight: weight
+  options/type:
+    plugin: field_instance_widget_type
+    source:
+      - widget_type
+  options/settings:
+    -
+      plugin: field_instance_widget_settings
+      source:
+        - widget_type
+        - widget_settings
+  options/third_party_settings: constants/third_party_settings
+destination:
+  plugin: component_entity_form_display
+template: d6_field_instance_widget_settings
+migration_dependencies:
+  required:
+    - d6_field_instance

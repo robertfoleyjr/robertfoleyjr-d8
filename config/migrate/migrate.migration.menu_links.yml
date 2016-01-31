@@ -1,0 +1,65 @@
+uuid: ad75b5d4-8a97-493a-9500-c5324d8e35b1
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.menu
+  module:
+    - menu_link_content
+id: menu_links
+migration_tags:
+  - 'Drupal 6'
+  - 'Drupal 7'
+label: 'Menu links'
+source:
+  plugin: menu_link
+  constants:
+    bundle: menu_link_content
+  database_state_key: migrate_upgrade_6
+process:
+  id: mlid
+  bundle: constants/bundle
+  title: link_title
+  description: description
+  menu_name:
+    -
+      plugin: migration
+      migration: menu
+      source: menu_name
+    -
+      plugin: static_map
+      map:
+        management: admin
+      bypass: true
+  link/uri:
+    plugin: internal_uri
+    source:
+      - link_path
+  link/options: options
+  route:
+    plugin: route
+    source:
+      - link_path
+      - options
+  route_name: '@route/route_name'
+  route_parameters: '@route/route_parameters'
+  url: '@route/url'
+  options: '@route/options'
+  external: external
+  weight: weight
+  expanded: expanded
+  enabled: enabled
+  parent:
+    plugin: menu_link_parent
+    source:
+      - plid
+      - '@menu_name'
+      - parent_link_path
+  changed: updated
+destination:
+  plugin: 'entity:menu_link_content'
+  no_stub: true
+template: menu_links
+migration_dependencies:
+  required:
+    - menu

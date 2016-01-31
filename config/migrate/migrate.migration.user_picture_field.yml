@@ -1,0 +1,31 @@
+uuid: 9c149fe8-b9a9-426a-a300-df0626c55fd9
+langcode: en
+status: true
+dependencies:
+  module:
+    - field
+    - image
+    - migrate_drupal
+    - user
+id: user_picture_field
+migration_tags:
+  - 'Drupal 6'
+  - 'Drupal 7'
+label: 'User picture field configuration'
+source:
+  plugin: md_empty
+  constants:
+    entity_type: user
+    type: image
+    name: user_picture
+    cardinality: 1
+  database_state_key: migrate_upgrade_6
+process:
+  entity_type: constants/entity_type
+  field_name: constants/name
+  type: constants/type
+  cardinality: constants/cardinality
+destination:
+  plugin: 'md_entity:field_storage_config'
+template: user_picture_field
+migration_dependencies: {  }

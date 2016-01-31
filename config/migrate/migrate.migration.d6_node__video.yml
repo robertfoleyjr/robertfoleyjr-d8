@@ -1,0 +1,56 @@
+uuid: 8822f24e-090c-4320-8b00-d33b9df194ac
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.d6_filter_format
+    - migrate.migration.d6_node_settings
+    - migrate.migration.d6_node_type
+    - migrate.migration.d6_user
+  module:
+    - node
+id: d6_node__video
+migration_tags:
+  - 'Drupal 6'
+label: 'Nodes (video)'
+source:
+  plugin: d6_node
+  database_state_key: migrate_upgrade_6
+  node_type: video
+process:
+  nid: nid
+  vid: vid
+  type: type
+  langcode:
+    plugin: default_value
+    source: language
+    default_value: und
+  title: title
+  uid: node_uid
+  status: status
+  created: created
+  changed: changed
+  promote: promote
+  sticky: sticky
+  body/format:
+    plugin: migration
+    migration: d6_filter_format
+    source: format
+  body/value: body
+  body/summary: teaser
+  revision_uid: revision_uid
+  revision_log: log
+  revision_timestamp: timestamp
+destination:
+  plugin: 'entity:node'
+template: d6_node
+migration_dependencies:
+  required:
+    - d6_user
+    - d6_node_type
+    - d6_node_settings
+    - d6_filter_format
+  optional:
+    - d6_field_instance_widget_settings
+    - d6_field_formatter_settings
+    - d6_upload_field_instance

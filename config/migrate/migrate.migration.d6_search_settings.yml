@@ -1,0 +1,32 @@
+uuid: 20ce5964-12ab-45a9-ab1a-2688b18e03f2
+langcode: en
+status: true
+dependencies:
+  module:
+    - migrate_drupal
+    - search
+id: d6_search_settings
+migration_tags:
+  - 'Drupal 6'
+label: 'Search configuration'
+source:
+  plugin: variable
+  constants:
+    status: true
+  variables:
+    - minimum_word_size
+    - overlap_cjk
+    - search_cron_limit
+    - search_tag_weights
+    - search_and_or_limit
+  database_state_key: migrate_upgrade_6
+process:
+  index/minimum_word_size: minimum_word_size
+  index/overlap_cjk: overlap_cjk
+  index/cron_limit: search_cron_limit
+  logging: constants/status
+destination:
+  plugin: config
+  config_name: search.settings
+template: d6_search_settings
+migration_dependencies: {  }

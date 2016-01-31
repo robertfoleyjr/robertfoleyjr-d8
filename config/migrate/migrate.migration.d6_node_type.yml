@@ -1,0 +1,33 @@
+uuid: 930f2e53-821f-4345-af06-6e132afdd00c
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: d6_node_type
+migration_tags:
+  - 'Drupal 6'
+label: 'Node type configuration'
+source:
+  plugin: d6_node_type
+  constants:
+    preview: 1
+    create_body: false
+  database_state_key: migrate_upgrade_6
+process:
+  type: type
+  name: name
+  module: module
+  description: description
+  help: help
+  title_label: title_label
+  preview_mode: constants/preview
+  display_submitted: display_submitted
+  new_revision: options/revision
+  settings/node/options: options
+  create_body: has_body
+  create_body_label: body_label
+destination:
+  plugin: 'entity:node_type'
+template: d6_node_type
+migration_dependencies: {  }

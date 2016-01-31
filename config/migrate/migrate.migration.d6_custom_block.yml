@@ -1,0 +1,35 @@
+uuid: cc6cd187-834d-4493-b562-98cd94826124
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.block_content_body_field
+    - migrate.migration.d6_filter_format
+  module:
+    - block_content
+id: d6_custom_block
+migration_tags:
+  - 'Drupal 6'
+label: 'Custom blocks'
+source:
+  plugin: d6_box
+  constants:
+    type: basic
+  database_state_key: migrate_upgrade_6
+process:
+  id: bid
+  type: constants/type
+  info: info
+  body/format:
+    plugin: migration
+    migration: d6_filter_format
+    source: format
+  body/value: body
+destination:
+  plugin: 'entity:block_content'
+  no_stub: true
+template: d6_custom_block
+migration_dependencies:
+  required:
+    - d6_filter_format
+    - block_content_body_field

@@ -1,0 +1,42 @@
+uuid: 59b30744-535f-459f-b30d-134c730c4c5b
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.block_content_type
+  module:
+    - field
+id: block_content_body_field
+migration_tags:
+  - 'Drupal 6'
+  - 'Drupal 7'
+label: 'Block content body field configuration'
+source:
+  plugin: embedded_data
+  data_rows:
+    -
+      entity_type: block_content
+      bundle: basic
+      field_name: body
+      label: Body
+      display_summary: false
+  ids:
+    entity_type:
+      type: string
+    bundle:
+      type: string
+    field_name:
+      type: string
+  database_state_key: migrate_upgrade_6
+process:
+  entity_type: entity_type
+  bundle: bundle
+  field_name: field_name
+  label: label
+  settings/display_summary: display_summary
+destination:
+  plugin: 'entity:field_config'
+template: block_content_body_field
+migration_dependencies:
+  required:
+    - block_content_type

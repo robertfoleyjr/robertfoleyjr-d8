@@ -1,0 +1,34 @@
+uuid: 8a66708e-5d82-43fb-8400-d8ce74354ab9
+langcode: en
+status: true
+dependencies:
+  module:
+    - file
+id: d6_file
+migration_tags:
+  - 'Drupal 6'
+label: Files
+source:
+  plugin: d6_file
+  database_state_key: migrate_upgrade_6
+process:
+  fid: fid
+  filename: filename
+  uri:
+    plugin: file_uri
+    source:
+      - filepath
+      - file_directory_path
+      - temp_directory_path
+      - is_public
+  filemime: filemime
+  filesize: filesize
+  status: status
+  changed: timestamp
+  uid: uid
+destination:
+  plugin: 'entity:file'
+  urlencode: true
+  source_base_path: /srv/drupal6/robertfoleyjr-d6/httproot/
+template: d6_file
+migration_dependencies: {  }

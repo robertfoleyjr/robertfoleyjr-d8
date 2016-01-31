@@ -1,0 +1,46 @@
+uuid: 7dc36cd0-2aca-4201-8607-7eb0c29667f1
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.d6_node__video
+  module:
+    - node
+id: d6_node_revision__video
+migration_tags:
+  - 'Drupal 6'
+label: 'Node revisions (video)'
+source:
+  plugin: d6_node_revision
+  database_state_key: migrate_upgrade_6
+  node_type: video
+process:
+  nid: nid
+  vid: vid
+  type: type
+  langcode:
+    plugin: default_value
+    source: language
+    default_value: und
+  title: title
+  uid: node_uid
+  status: status
+  created: created
+  changed: changed
+  promote: promote
+  sticky: sticky
+  body/format:
+    plugin: migration
+    migration: d6_filter_format
+    source: format
+  body/value: body
+  body/summary: teaser
+  revision_uid: revision_uid
+  revision_log: log
+  revision_timestamp: timestamp
+destination:
+  plugin: 'entity_revision:node'
+template: d6_node_revision
+migration_dependencies:
+  required:
+    - d6_node__video

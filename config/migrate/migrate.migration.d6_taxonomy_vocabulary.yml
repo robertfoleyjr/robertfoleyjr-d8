@@ -1,0 +1,32 @@
+uuid: f647dc68-2e57-4270-ae00-ee331b6aa4ff
+langcode: en
+status: true
+dependencies:
+  module:
+    - taxonomy
+id: d6_taxonomy_vocabulary
+migration_tags:
+  - 'Drupal 6'
+label: 'Taxonomy vocabularies'
+source:
+  plugin: d6_taxonomy_vocabulary
+  database_state_key: migrate_upgrade_6
+process:
+  vid:
+    -
+      plugin: machine_name
+      source: name
+    -
+      plugin: dedupe_entity
+      entity_type: taxonomy_vocabulary
+      field: vid
+      length: 32
+  label: name
+  name: name
+  description: description
+  hierarchy: hierarchy
+  weight: weight
+destination:
+  plugin: 'entity:taxonomy_vocabulary'
+template: d6_taxonomy_vocabulary
+migration_dependencies: {  }

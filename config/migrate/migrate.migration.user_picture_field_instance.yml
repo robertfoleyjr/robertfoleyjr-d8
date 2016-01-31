@@ -1,0 +1,42 @@
+uuid: 06f009ae-ca3f-4bc2-921c-28e47ad37ed9
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.user_picture_field
+  module:
+    - field
+    - user
+id: user_picture_field_instance
+migration_tags:
+  - 'Drupal 6'
+  - 'Drupal 7'
+label: 'User picture field instance configuration'
+source:
+  plugin: user_picture_instance
+  constants:
+    entity_type: user
+    bundle: user
+    name: user_picture
+    settings:
+      file_extensions: 'png gif jpg jpeg'
+      alt_field: false
+      title_field: false
+      min_resolution: ''
+      alt_field_required: false
+      title_field_required: false
+  database_state_key: migrate_upgrade_6
+process:
+  entity_type: constants/entity_type
+  bundle: constants/bundle
+  field_name: constants/name
+  settings: constants/settings
+  settings/file_directory: file_directory
+  settings/max_filesize: max_filesize
+  settings/max_resolution: max_resolution
+destination:
+  plugin: 'entity:field_config'
+template: user_picture_field_instance
+migration_dependencies:
+  required:
+    - user_picture_field

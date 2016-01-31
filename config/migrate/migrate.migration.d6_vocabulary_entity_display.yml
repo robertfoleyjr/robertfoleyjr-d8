@@ -1,0 +1,38 @@
+uuid: daa22c76-2fff-4a31-ba00-b7ab69130eca
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.d6_vocabulary_field_instance
+  module:
+    - node
+    - taxonomy
+id: d6_vocabulary_entity_display
+migration_tags:
+  - 'Drupal 6'
+label: 'Vocabulary display configuration'
+source:
+  plugin: d6_taxonomy_vocabulary_per_type
+  constants:
+    entity_type: node
+    view_mode: default
+    options:
+      label: hidden
+      type: entity_reference_label
+      weight: 20
+  database_state_key: migrate_upgrade_6
+process:
+  entity_type: constants/entity_type
+  view_mode: constants/view_mode
+  options: constants/options
+  bundle: type
+  field_name:
+    plugin: migration
+    migration: d6_taxonomy_vocabulary
+    source: vid
+destination:
+  plugin: component_entity_display
+template: d6_vocabulary_entity_display
+migration_dependencies:
+  required:
+    - d6_vocabulary_field_instance

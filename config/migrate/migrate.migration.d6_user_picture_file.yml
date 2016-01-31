@@ -1,0 +1,34 @@
+uuid: 47deecf5-7286-42ea-8009-9adeafda0b01
+langcode: en
+status: true
+dependencies:
+  module:
+    - file
+    - user
+id: d6_user_picture_file
+migration_tags:
+  - 'Drupal 6'
+label: 'User pictures'
+source:
+  plugin: d6_user_picture_file
+  constants:
+    is_public: true
+  database_state_key: migrate_upgrade_6
+process:
+  filename: filename
+  uid: uid
+  uri:
+    plugin: file_uri
+    source:
+      - picture
+      - file_directory_path
+      - temp_directory_path
+      - constants/is_public
+destination:
+  plugin: 'entity:file'
+  source_path_property: picture
+  source_base_path: /srv/drupal6/robertfoleyjr-d6/httproot/
+template: d6_user_picture_file
+migration_dependencies:
+  optional:
+    - d6_file

@@ -1,0 +1,54 @@
+uuid: 0970b5e1-33ee-4df4-a102-2ef0032aee63
+langcode: en
+status: true
+dependencies:
+  module:
+    - filter
+id: d6_filter_format
+migration_tags:
+  - 'Drupal 6'
+label: 'Filter format configuration'
+source:
+  plugin: d6_filter_format
+  database_state_key: migrate_upgrade_6
+process:
+  format:
+    -
+      plugin: machine_name
+      source: name
+    -
+      plugin: dedupe_entity
+      entity_type: filter_format
+      field: format
+      length: 32
+  name: name
+  cache: cache
+  filters:
+    plugin: iterator
+    source: filters
+    key: '@id'
+    process:
+      id:
+        plugin: static_map
+        default_value: filter_null
+        source:
+          - module
+          - delta
+        map:
+          filter:
+            - filter_html
+            - filter_autop
+            - filter_url
+            - filter_htmlcorrector
+            - filter_html_escape
+      settings:
+        plugin: filter_settings
+        source: settings
+      status:
+        plugin: default_value
+        default_value: true
+destination:
+  plugin: 'entity:filter_format'
+  no_stub: true
+template: d6_filter_format
+migration_dependencies: {  }

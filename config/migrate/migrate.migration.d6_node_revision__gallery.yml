@@ -1,0 +1,88 @@
+uuid: 2c0adaeb-53b1-4137-8b27-3997c78426a1
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.d6_node__gallery
+  module:
+    - node
+id: d6_node_revision__gallery
+migration_tags:
+  - 'Drupal 6'
+label: 'Node revisions (gallery)'
+source:
+  plugin: d6_node_revision
+  database_state_key: migrate_upgrade_6
+  node_type: gallery
+process:
+  nid: nid
+  vid: vid
+  type: type
+  langcode:
+    plugin: default_value
+    source: language
+    default_value: und
+  title: title
+  uid: node_uid
+  status: status
+  created: created
+  changed: changed
+  promote: promote
+  sticky: sticky
+  body/format:
+    plugin: migration
+    migration: d6_filter_format
+    source: format
+  body/value: body
+  body/summary: teaser
+  revision_uid: revision_uid
+  revision_log: log
+  revision_timestamp: timestamp
+  field_node_gallery:
+    plugin: iterator
+    source: field_node_gallery
+    process:
+      target_id: nid
+  field_node_media:
+    plugin: iterator
+    source: field_node_media
+    process:
+      target_id: nid
+  field_blog_tags: field_blog_tags
+  field_blog_author_user:
+    plugin: iterator
+    source: field_blog_author_user
+    process:
+      target_id: uid
+  field_node_teaser_active: field_node_teaser_active
+  field_node_teaser_desc:
+    plugin: iterator
+    source: field_node_teaser_desc
+    process:
+      value: value
+      format:
+        -
+          plugin: static_map
+          bypass: true
+          source: format
+          map:
+            - null
+        -
+          plugin: skip_on_empty
+          method: process
+        -
+          plugin: migration
+          migration:
+            - d6_filter_format
+            - d7_filter_format
+          source: format
+  field_node_teaser_image:
+    plugin: d6_cck_file
+    source: field_node_teaser_image
+  field_gallery_child_options: field_gallery_child_options
+destination:
+  plugin: 'entity_revision:node'
+template: d6_node_revision
+migration_dependencies:
+  required:
+    - d6_node__gallery

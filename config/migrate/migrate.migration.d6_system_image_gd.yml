@@ -1,0 +1,23 @@
+uuid: 8f768f4e-591a-4ecf-8009-9ff26d51a426
+langcode: en
+status: true
+dependencies:
+  module:
+    - migrate_drupal
+    - system
+id: d6_system_image_gd
+migration_tags:
+  - 'Drupal 6'
+label: 'Image quality configuration'
+source:
+  plugin: variable
+  variables:
+    - image_jpeg_quality
+  database_state_key: migrate_upgrade_6
+process:
+  jpeg_quality: image_jpeg_quality
+destination:
+  plugin: config
+  config_name: system.image.gd
+template: d6_system_image_gd
+migration_dependencies: {  }

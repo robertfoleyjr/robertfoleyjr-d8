@@ -1,0 +1,130 @@
+uuid: e6f9ba16-8907-488b-b400-b5e374ff790f
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.d6_filter_format
+    - migrate.migration.d6_node_settings
+    - migrate.migration.d6_node_type
+    - migrate.migration.d6_user
+  module:
+    - node
+id: d6_node__project
+migration_tags:
+  - 'Drupal 6'
+label: 'Nodes (project)'
+source:
+  plugin: d6_node
+  database_state_key: migrate_upgrade_6
+  node_type: project
+process:
+  nid: nid
+  vid: vid
+  type: type
+  langcode:
+    plugin: default_value
+    source: language
+    default_value: und
+  title: title
+  uid: node_uid
+  status: status
+  created: created
+  changed: changed
+  promote: promote
+  sticky: sticky
+  body/format:
+    plugin: migration
+    migration: d6_filter_format
+    source: format
+  body/value: body
+  body/summary: teaser
+  revision_uid: revision_uid
+  revision_log: log
+  revision_timestamp: timestamp
+  field_node_company: field_node_company
+  field_node_employer: field_node_employer
+  field_node_internal: field_node_internal
+  field_node_status: field_node_status
+  field_node_start_date: field_node_start_date
+  field_node_end_date: field_node_end_date
+  field_node_teaser_desc:
+    plugin: iterator
+    source: field_node_teaser_desc
+    process:
+      value: value
+      format:
+        -
+          plugin: static_map
+          bypass: true
+          source: format
+          map:
+            - null
+        -
+          plugin: skip_on_empty
+          method: process
+        -
+          plugin: migration
+          migration:
+            - d6_filter_format
+            - d7_filter_format
+          source: format
+  field_node_teaser_active: field_node_teaser_active
+  field_node_client: field_node_client
+  field_node_industry: field_node_industry
+  field_node_medium: field_node_medium
+  field_node_service: field_node_service
+  field_node_skill: field_node_skill
+  field_node_technology: field_node_technology
+  field_project_images:
+    plugin: d6_cck_file
+    source: field_project_images
+  field_project_files:
+    plugin: d6_cck_file
+    source: field_project_files
+  field_project_links:
+    plugin: iterator
+    source: field_project_links
+    process:
+      target_id: nid
+  field_project_related:
+    plugin: iterator
+    source: field_project_related
+    process:
+      target_id: nid
+  field_node_teaser_image:
+    plugin: d6_cck_file
+    source: field_node_teaser_image
+  field_project_private:
+    plugin: iterator
+    source: field_project_private
+    process:
+      value: value
+      format:
+        -
+          plugin: static_map
+          bypass: true
+          source: format
+          map:
+            - null
+        -
+          plugin: skip_on_empty
+          method: process
+        -
+          plugin: migration
+          migration:
+            - d6_filter_format
+            - d7_filter_format
+          source: format
+destination:
+  plugin: 'entity:node'
+template: d6_node
+migration_dependencies:
+  required:
+    - d6_user
+    - d6_node_type
+    - d6_node_settings
+    - d6_filter_format
+  optional:
+    - d6_field_instance_widget_settings
+    - d6_field_formatter_settings
+    - d6_upload_field_instance

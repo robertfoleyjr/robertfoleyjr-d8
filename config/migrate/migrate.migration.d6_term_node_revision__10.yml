@@ -1,0 +1,57 @@
+uuid: 93327174-493a-4bf8-964e-787662bb1798
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.d6_node_revision__blog
+    - migrate.migration.d6_node_revision__book
+    - migrate.migration.d6_node_revision__bookmark
+    - migrate.migration.d6_node_revision__gallery
+    - migrate.migration.d6_node_revision__image
+    - migrate.migration.d6_node_revision__page
+    - migrate.migration.d6_node_revision__project
+    - migrate.migration.d6_node_revision__quote
+    - migrate.migration.d6_node_revision__story
+    - migrate.migration.d6_node_revision__test
+    - migrate.migration.d6_node_revision__video
+    - migrate.migration.d6_node_revision__webform
+    - migrate.migration.d6_term_node__1
+    - migrate.migration.d6_term_node__10
+    - migrate.migration.d6_term_node__11
+    - migrate.migration.d6_term_node__2
+    - migrate.migration.d6_term_node__3
+    - migrate.migration.d6_term_node__4
+    - migrate.migration.d6_term_node__5
+    - migrate.migration.d6_term_node__6
+    - migrate.migration.d6_term_node__7
+    - migrate.migration.d6_term_node__8
+    - migrate.migration.d6_term_node__9
+  module:
+    - node
+    - taxonomy
+id: d6_term_node_revision__10
+migration_tags:
+  - 'Drupal 6'
+label: 'Term/node relationship revisions'
+source:
+  plugin: d6_term_node_revision
+  database_state_key: migrate_upgrade_6
+  vid: 10
+process:
+  vid:
+    -
+      plugin: migration
+      migration: 'd6_node:*'
+      source: vid
+    -
+      plugin: skip_on_empty
+      method: row
+  type: type
+  tags1: tid
+destination:
+  plugin: 'entity_revision:node'
+template: d6_term_node_revision
+migration_dependencies:
+  required:
+    - 'd6_term_node:*'
+    - 'd6_node_revision:*'

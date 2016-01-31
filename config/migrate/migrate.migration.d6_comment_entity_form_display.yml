@@ -1,0 +1,35 @@
+uuid: 33898f06-df8f-48dc-b733-519b88986812
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.d6_comment_field_instance
+  module:
+    - comment
+    - node
+id: d6_comment_entity_form_display
+migration_tags:
+  - 'Drupal 6'
+label: 'Comment field form display configuration'
+source:
+  plugin: d6_comment_variable
+  constants:
+    entity_type: node
+    field_name: comment
+    form_mode: default
+    options:
+      type: comment_default
+      weight: 20
+  database_state_key: migrate_upgrade_6
+process:
+  entity_type: constants/entity_type
+  field_name: constants/field_name
+  form_mode: constants/form_mode
+  options: constants/options
+  bundle: node_type
+destination:
+  plugin: component_entity_form_display
+template: d6_comment_entity_form_display
+migration_dependencies:
+  required:
+    - d6_comment_field_instance

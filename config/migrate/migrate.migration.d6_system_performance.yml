@@ -1,0 +1,30 @@
+uuid: b5cae77d-b140-4eda-ba00-a44c44995324
+langcode: en
+status: true
+dependencies:
+  module:
+    - migrate_drupal
+    - system
+id: d6_system_performance
+migration_tags:
+  - 'Drupal 6'
+label: 'Performance configuration'
+source:
+  plugin: variable
+  variables:
+    - preprocess_css
+    - preprocess_js
+    - cache_lifetime
+    - cache
+    - page_compression
+  database_state_key: migrate_upgrade_6
+process:
+  css/preprocess: preprocess_css
+  js/preprocess: preprocess_js
+  cache/page/max_age: cache_lifetime
+  response/gzip: page_compression
+destination:
+  plugin: config
+  config_name: system.performance
+template: d6_system_performance
+migration_dependencies: {  }

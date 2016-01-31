@@ -1,0 +1,58 @@
+uuid: f1329268-a457-4110-a609-9dc9ab8a3408
+langcode: en
+status: true
+dependencies:
+  config:
+    - migrate.migration.d6_comment_entity_display
+    - migrate.migration.d6_comment_entity_form_display
+    - migrate.migration.d6_comment_type
+    - migrate.migration.d6_filter_format
+    - migrate.migration.d6_user
+  module:
+    - comment
+    - node
+id: d6_comment
+migration_tags:
+  - 'Drupal 6'
+label: Comments
+source:
+  plugin: d6_comment
+  constants:
+    entity_type: node
+  database_state_key: migrate_upgrade_6
+process:
+  cid: cid
+  pid:
+    plugin: migration
+    migration: d6_comment
+    source: pid
+  entity_id: nid
+  entity_type: constants/entity_type
+  field_name: field_name
+  comment_type: comment_type
+  subject: subject
+  uid: uid
+  name: name
+  mail: mail
+  homepage: homepage
+  hostname: hostname
+  created: timestamp
+  changed: timestamp
+  status: status
+  thread: thread
+  comment_body/value: comment
+  comment_body/format:
+    plugin: migration
+    migration: d6_filter_format
+    source: format
+destination:
+  plugin: 'entity:comment'
+template: d6_comment
+migration_dependencies:
+  required:
+    - 'd6_node:*'
+    - d6_comment_type
+    - d6_comment_entity_display
+    - d6_comment_entity_form_display
+    - d6_user
+    - d6_filter_format

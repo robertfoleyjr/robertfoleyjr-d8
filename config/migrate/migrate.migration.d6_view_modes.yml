@@ -1,0 +1,47 @@
+uuid: caa77270-22a2-4679-b700-ee76bdc32a7e
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: d6_view_modes
+migration_tags:
+  - 'Drupal 6'
+label: 'View modes'
+source:
+  plugin: d6_view_mode
+  constants:
+    targetEntityType: node
+    status: true
+  database_state_key: migrate_upgrade_6
+process:
+  mode:
+    plugin: static_map
+    source: view_mode
+    map:
+      0: normal
+      1: preview
+      2: search_index
+      3: search_result
+      4: rss
+      5: print
+      teaser: teaser
+      full: full
+  label:
+    plugin: static_map
+    source: view_mode
+    map:
+      0: Normal
+      1: Preview
+      2: 'Search index'
+      3: 'Search result'
+      4: RSS
+      5: Print
+      teaser: Teaser
+      full: Full
+  targetEntityType: constants/targetEntityType
+  status: constants/status
+destination:
+  plugin: 'entity:entity_view_mode'
+template: d6_view_modes
+migration_dependencies: {  }
