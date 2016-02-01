@@ -14,11 +14,7 @@ namespace Symfony\Component\Serializer\Mapping;
 /**
  * Stores metadata needed for serializing and deserializing objects of specific class.
  *
- * Primarily, the metadata stores the set of attributes to serialize or deserialize.
- *
- * There may only exist one metadata for each attribute according to its name.
- *
- * @internal
+ * Primarily, the metadata stores the list of attributes to serialize or deserialize.
  *
  * @author Kévin Dunglas <dunglas@gmail.com>
  */

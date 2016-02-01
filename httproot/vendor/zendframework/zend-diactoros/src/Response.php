@@ -102,10 +102,10 @@ class Response implements ResponseInterface
     /**
      * @var int
      */
-    private $statusCode;
+    private $statusCode = 200;
 
     /**
-     * @param string|resource|StreamInterface $body Stream identifier and/or actual stream resource
+     * @param string|resource|StreamInterface $stream Stream identifier and/or actual stream resource
      * @param int $status Status code for the response, if any.
      * @param array $headers Headers for the response, if any.
      * @throws InvalidArgumentException on any invalid element.
@@ -120,9 +120,12 @@ class Response implements ResponseInterface
             );
         }
 
-        $this->setStatusCode($status);
+        if (null !== $status) {
+            $this->validateStatus($status);
+        }
 
-        $this->stream = ($body instanceof StreamInterface) ? $body : new Stream($body, 'wb+');
+        $this->stream     = ($body instanceof StreamInterface) ? $body : new Stream($body, 'wb+');
+        $this->statusCode = $status ? (int) $status : 200;
 
         list($this->headerNames, $headers) = $this->filterHeaders($headers);
         $this->assertHeaders($headers);
@@ -156,8 +159,9 @@ class Response implements ResponseInterface
      */
     public function withStatus($code, $reasonPhrase = '')
     {
+        $this->validateStatus($code);
         $new = clone $this;
-        $new->setStatusCode($code);
+        $new->statusCode   = (int) $code;
         $new->reasonPhrase = $reasonPhrase;
         return $new;
     }
@@ -168,7 +172,7 @@ class Response implements ResponseInterface
      * @param int|string $code
      * @throws InvalidArgumentException on an invalid status code.
      */
-    private function setStatusCode($code)
+    private function validateStatus($code)
     {
         if (! is_numeric($code)
             || is_float($code)
@@ -180,7 +184,6 @@ class Response implements ResponseInterface
                 (is_scalar($code) ? $code : gettype($code))
             ));
         }
-        $this->statusCode = $code;
     }
 
     /**

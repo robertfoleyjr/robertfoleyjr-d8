@@ -134,7 +134,7 @@ class ClassMapGenerator
                     }
 
                     if ($isClassConstant) {
-                        break;
+                        continue;
                     }
 
                     // Find the classname

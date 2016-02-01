@@ -90,8 +90,6 @@ abstract class MigrateDrupal6TestBase extends MigrateDrupalTestBase {
       'd6_field_formatter_settings',
       'd6_upload_field',
       'd6_upload_field_instance',
-      'd6_user_role',
-      'd6_filter_format'
     ]);
   }
 

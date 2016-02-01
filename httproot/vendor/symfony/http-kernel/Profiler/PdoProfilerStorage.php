@@ -188,8 +188,9 @@ abstract class PdoProfilerStorage implements ProfilerStorageInterface
             $stmt->bindValue($arg, $val, is_int($val) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
         }
         $stmt->execute();
+        $return = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return $return;
     }
 
     protected function close($db)

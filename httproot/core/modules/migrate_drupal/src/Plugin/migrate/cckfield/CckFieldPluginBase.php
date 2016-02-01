@@ -9,7 +9,6 @@ namespace Drupal\migrate_drupal\Plugin\migrate\cckfield;
 
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\migrate\Entity\MigrationInterface;
-use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\Row;
 use Drupal\migrate_drupal\Plugin\MigrateCckFieldInterface;
 
@@ -44,7 +43,11 @@ abstract class CckFieldPluginBase extends PluginBase implements MigrateCckFieldI
    * {@inheritdoc}
    */
   public function processFieldWidget(MigrationInterface $migration) {
-    // Nothing to do by default with field widgets.
+    $process = [];
+    foreach ($this->getFieldWidgetMap() as $source_widget => $destination_widget) {
+      $process['type']['map'][$source_widget] = $destination_widget;
+    }
+    $migration->mergeProcessOfProperty('options/type', $process);
   }
 
   /**
@@ -80,29 +83,6 @@ abstract class CckFieldPluginBase extends PluginBase implements MigrateCckFieldI
     else {
       return $field_type;
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function transformFieldStorageSettings(Row $row) {
-    return [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function transformFieldInstanceSettings(Row $row) {
-    return [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function transformWidgetType(Row $row) {
-    $source_widget_type = $row->getSourceProperty('widget_type');
-    $map = $this->getFieldWidgetMap();
-    return isset($map[$source_widget_type]) ? $map[$source_widget_type] : NULL;
   }
 
 }

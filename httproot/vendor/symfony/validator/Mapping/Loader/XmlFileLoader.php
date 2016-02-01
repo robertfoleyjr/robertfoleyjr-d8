@@ -190,7 +190,7 @@ class XmlFileLoader extends FileLoader
      */
     private function loadClassMetadataFromXml(ClassMetadata $metadata, $classDescription)
     {
-        if (count($classDescription->{'group-sequence-provider'}) > 0) {
+        foreach ($classDescription->{'group-sequence-provider'} as $_) {
             $metadata->setGroupSequenceProvider(true);
         }
 

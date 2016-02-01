@@ -93,9 +93,8 @@ class XmlFileLoader extends FileLoader
             return;
         }
 
-        $defaultDirectory = dirname($file);
         foreach ($imports as $import) {
-            $this->setCurrentDir($defaultDirectory);
+            $this->setCurrentDir(dirname($file));
             $this->import($import->getAttribute('resource'), null, (bool) XmlUtils::phpize($import->getAttribute('ignore-errors')), $file);
         }
     }

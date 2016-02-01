@@ -99,7 +99,7 @@ class ResponseHeaderBag extends HeaderBag
     {
         parent::set($key, $values, $replace);
 
-        $uniqueKey = str_replace('_', '-', strtolower($key));
+        $uniqueKey = strtr(strtolower($key), '_', '-');
         $this->headerNames[$uniqueKey] = $key;
 
         // ensure the cache-control header has sensible defaults
@@ -118,7 +118,7 @@ class ResponseHeaderBag extends HeaderBag
     {
         parent::remove($key);
 
-        $uniqueKey = str_replace('_', '-', strtolower($key));
+        $uniqueKey = strtr(strtolower($key), '_', '-');
         unset($this->headerNames[$uniqueKey]);
 
         if ('cache-control' === $uniqueKey) {
