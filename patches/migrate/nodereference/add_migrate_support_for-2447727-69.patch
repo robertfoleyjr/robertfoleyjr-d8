@@ -1,0 +1,1790 @@
+diff --git a/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/NodeReference.php b/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/NodeReference.php
+new file mode 100644
+index 0000000..bc24849
+--- /dev/null
++++ b/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/NodeReference.php
+@@ -0,0 +1,112 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\Core\Field\Plugin\migrate\cckfield\NodeReference.
++ */
++
++namespace Drupal\Core\Field\Plugin\migrate\cckfield;
++
++use Drupal\migrate\Entity\Migration;
++use Drupal\migrate\Entity\MigrationInterface;
++use Drupal\migrate\MigrateExecutable;
++use Drupal\migrate\MigrateMessage;
++use Drupal\migrate\Row;
++
++/**
++ * @MigrateCckField(
++ *   id = "nodereference",
++ *   type_map = {
++ *     "nodereference" = "entity_reference"
++ *   }
++ * )
++ */
++class NodeReference extends ReferenceBase {
++
++  /**
++   * @var string
++   */
++  protected $nodeTypeMigration = 'd6_node_type';
++
++  /**
++   * {@inheritdoc}
++   */
++  protected function entityId() {
++    return 'nid';
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getFieldWidgetMap() {
++    return [
++      'nodereference_select' => 'options_select',
++      'nodereference_buttons' => 'options_buttons',
++      'nodereference_autocomplete' => 'entity_reference_autocomplete'
++    ];
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function transformFieldStorageSettings(Row $row) {
++    $settings['target_type'] = 'node';
++    return $settings;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function processFieldInstance(MigrationInterface $migration) {
++    parent::processFieldInstance($migration);
++
++    $migration_dependencies = $migration->get('migration_dependencies');
++    $migration_dependencies['required'][] = $this->nodeTypeMigration;
++    $migration->set('migration_dependencies', $migration_dependencies);
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function transformFieldInstanceSettings(Row $row) {
++    $source_settings = $row->getSourceProperty('global_settings');
++    $settings['handler'] = 'default:node';
++    $settings['handler_settings']['target_bundles'] = [];
++
++    $node_types = array_filter($source_settings['referenceable_types']);
++    if (!empty($node_types)) {
++      $settings['handler_settings']['target_bundles'] = $this->migrateNodeTypes($node_types);
++    }
++    return $settings;
++  }
++
++  /**
++   * Look up migrated node types from the d6_node_type migration.
++   *
++   * @param $source_node_types
++   *   The source node types.
++   *
++   * @return array
++   *   The migrated node types.
++   */
++  protected function migrateNodeTypes($source_node_types) {
++    // Configure the migration process plugin to look up migrated IDs from
++    // the d6_node_type migration.
++    $migration_plugin_configuration = [
++      'migration' => $this->nodeTypeMigration,
++    ];
++
++    $migration = Migration::create();
++    $executable = new MigrateExecutable($migration, new MigrateMessage());
++    $row = new Row([], []);
++    $migrationPlugin = $this->migratePluginManager
++      ->createInstance('migration', $migration_plugin_configuration, $migration);
++
++    $node_types = [];
++    foreach ($source_node_types as $role) {
++      $node_types[] = $migrationPlugin->transform($role, $executable, $row, NULL);
++    }
++    return array_combine($node_types, $node_types);
++  }
++
++}
+diff --git a/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/ReferenceBase.php b/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/ReferenceBase.php
+new file mode 100644
+index 0000000..1104357
+--- /dev/null
++++ b/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/ReferenceBase.php
+@@ -0,0 +1,76 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\Core\Field\Plugin\migrate\cckfield\ReferenceBase.
++ */
++
++namespace Drupal\Core\Field\Plugin\migrate\cckfield;
++
++use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
++use Drupal\migrate\Entity\MigrationInterface;
++use Drupal\migrate\Plugin\MigratePluginManager;
++use Drupal\migrate_drupal\Plugin\migrate\cckfield\CckFieldPluginBase;
++use Symfony\Component\DependencyInjection\ContainerInterface;
++
++/**
++ * Base class for entity reference fields.
++ */
++abstract class ReferenceBase extends CckFieldPluginBase implements ContainerFactoryPluginInterface {
++
++  /**
++   * The migrate plugin manager, configured for lookups in d6_user_roles.
++   *
++   * @var \Drupal\migrate\Plugin\MigratePluginManager
++   */
++  protected $migratePluginManager;
++
++  /**
++   * {@inheritdoc}
++   */
++  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigratePluginManager $migration_plugin_manager) {
++    parent::__construct($configuration, $plugin_id, $plugin_definition);
++    $this->migratePluginManager = $migration_plugin_manager;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
++    return new static(
++      $configuration,
++      $plugin_id,
++      $plugin_definition,
++      $container->get('plugin.manager.migrate.process')
++    );
++  }
++
++  /**
++   * Gets the name of the field property which holds the entity ID.
++   *
++   * @return string
++   */
++  abstract protected function entityId();
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getFieldFormatterMap() {
++    return array();
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function processCckFieldValues(MigrationInterface $migration, $field_name, $data) {
++    $process = array(
++      'plugin' => 'iterator',
++      'source' => $field_name,
++      'process' => array(
++        'target_id' => $this->entityId(),
++      ),
++    );
++    $migration->setProcessOfProperty($field_name, $process);
++  }
++
++}
+diff --git a/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/TaxonomyTermReference.php b/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/TaxonomyTermReference.php
+new file mode 100644
+index 0000000..ceecefb
+--- /dev/null
++++ b/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/TaxonomyTermReference.php
+@@ -0,0 +1,48 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\Core\Field\Plugin\migrate\cckfield\TaxonomyTermReference.
++ */
++
++namespace Drupal\Core\Field\Plugin\migrate\cckfield;
++
++use Drupal\migrate\Row;
++
++/**
++ * @MigrateCckField(
++ *   id = "taxonomy_term_reference",
++ *   type_map = {
++ *     "taxonomy_term_reference" = "entity_reference"
++ *   }
++ * )
++ */
++class TaxonomyTermReference extends ReferenceBase {
++
++  /**
++   * {@inheritdoc}
++   */
++  protected function entityId() {
++    return 'tid';
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getFieldWidgetMap() {
++    return [
++      'taxonomy_term_reference_select' => 'options_select',
++      'taxonomy_term_reference_buttons' => 'options_buttons',
++      'taxonomy_term_reference_autocomplete' => 'entity_reference_autocomplete'
++    ];
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function transformFieldStorageSettings(Row $row) {
++    $settings['target_type'] = 'taxonomy_term';
++    return $settings;
++  }
++
++}
+diff --git a/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/UserReference.php b/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/UserReference.php
+new file mode 100644
+index 0000000..6d86e00
+--- /dev/null
++++ b/core/lib/Drupal/Core/Field/Plugin/migrate/cckfield/UserReference.php
+@@ -0,0 +1,119 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\Core\Field\Plugin\migrate\cckfield\UserReference.
++ */
++
++namespace Drupal\Core\Field\Plugin\migrate\cckfield;
++
++use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
++use Drupal\migrate\Entity\Migration;
++use Drupal\migrate\Entity\MigrationInterface;
++use Drupal\migrate\MigrateExecutable;
++use Drupal\migrate\MigrateMessage;
++use Drupal\migrate\Plugin\MigratePluginManager;
++use Drupal\migrate\Row;
++use Symfony\Component\DependencyInjection\ContainerInterface;
++
++/**
++ * @MigrateCckField(
++ *   id = "userreference",
++ *   type_map = {
++ *     "userreference" = "entity_reference"
++ *   }
++ * )
++ */
++class UserReference extends ReferenceBase {
++
++  /**
++   * @var string
++   */
++  protected $userRoleMigration = 'd6_user_role';
++
++  /**
++   * {@inheritdoc}
++   */
++  protected function entityId() {
++    return 'uid';
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getFieldWidgetMap() {
++    return [
++      'userreference_select' => 'options_select',
++      'userreference_buttons' => 'options_buttons',
++      'userreference_autocomplete' => 'entity_reference_autocomplete'
++    ];
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function transformFieldStorageSettings(Row $row) {
++    $settings['target_type'] = 'user';
++    return $settings;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function processFieldInstance(MigrationInterface $migration) {
++    parent::processFieldInstance($migration);
++
++    $migration_dependencies = $migration->get('migration_dependencies');
++    $migration_dependencies['required'][] = $this->userRoleMigration;
++    $migration->set('migration_dependencies', $migration_dependencies);
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function transformFieldInstanceSettings(Row $row) {
++    $source_settings = $row->getSourceProperty('global_settings');
++    $settings['handler'] = 'default:user';
++    $settings['handler_settings']['include_anonymous'] = FALSE;
++    $settings['handler_settings']['filter']['type'] = '_none';
++    $settings['handler_settings']['target_bundles'] = NULL;
++
++    $roles = array_filter($source_settings['referenceable_roles']);
++    if (!empty($roles)) {
++      $settings['handler_settings']['filter']['type'] = 'role';
++      $settings['handler_settings']['filter']['role'] = $this->migrateUserRoles($roles);
++    }
++
++    return $settings;
++  }
++
++  /**
++   * Look up migrated role IDs from the d6_user_role migration.
++   *
++   * @param $source_roles
++   *   The source role IDs.
++   *
++   * @return array
++   *   The migrated role IDs.
++   */
++  protected function migrateUserRoles($source_roles) {
++    // Configure the migration process plugin to look up migrated IDs from
++    // the d6_user_role migration.
++    $migration_plugin_configuration = [
++      'migration' => $this->userRoleMigration,
++    ];
++
++    $migration = Migration::create();
++    $executable = new MigrateExecutable($migration, new MigrateMessage());
++    $row = new Row([], []);
++    $migrationPlugin = $this->migratePluginManager
++      ->createInstance('migration',$migration_plugin_configuration, $migration);
++
++    $roles = [];
++    foreach ($source_roles as $role) {
++      $roles[] = $migrationPlugin->transform($role, $executable, $row, NULL);
++    }
++    return array_combine($roles, $roles);
++  }
++
++}
+diff --git a/core/modules/field/migration_templates/d6_field.yml b/core/modules/field/migration_templates/d6_field.yml
+index ec29aad..02c4261 100644
+--- a/core/modules/field/migration_templates/d6_field.yml
++++ b/core/modules/field/migration_templates/d6_field.yml
+@@ -127,6 +127,6 @@ process:
+     source:
+       - '@type'
+       - global_settings
+-
++      - type
+ destination:
+   plugin: md_entity:field_storage_config
+diff --git a/core/modules/field/migration_templates/d6_field_instance.yml b/core/modules/field/migration_templates/d6_field_instance.yml
+index aa7861a..de21142 100644
+--- a/core/modules/field/migration_templates/d6_field_instance.yml
++++ b/core/modules/field/migration_templates/d6_field_instance.yml
+@@ -46,14 +46,12 @@ process:
+       - widget_type
+       - widget_settings
+       - global_settings
+-
+   default_value_callback: ''
+   default_value:
+     plugin: d6_field_instance_defaults
+     source:
+       - widget_type
+       - widget_settings
+-
+ destination:
+   plugin: entity:field_config
+ migration_dependencies:
+diff --git a/core/modules/field/migration_templates/d6_field_instance_widget_settings.yml b/core/modules/field/migration_templates/d6_field_instance_widget_settings.yml
+index d34648d..275bb4f 100644
+--- a/core/modules/field/migration_templates/d6_field_instance_widget_settings.yml
++++ b/core/modules/field/migration_templates/d6_field_instance_widget_settings.yml
+@@ -41,20 +41,9 @@ process:
+   entity_type: 'constants/entity_type'
+   'options/weight': weight
+   'options/type':
+-    type:
+-      plugin: static_map
+-      bypass: true
+-      source: widget_type
+-      map:
+-        number: number
+-        email_textfield: email_default
+-        date_select: datetime_default
+-        date_text: datetime_default
+-        imagefield_widget: image_image
+-        phone_textfield: telephone_default
+-        optionwidgets_onoff: boolean_checkbox
+-        optionwidgets_buttons: options_buttons
+-        optionwidgets_select: options_select
++    plugin: field_instance_widget_type
++    source:
++      - widget_type
+   'options/settings':
+     -
+       plugin: field_instance_widget_settings
+@@ -62,7 +51,6 @@ process:
+         - widget_type
+         - widget_settings
+   'options/third_party_settings': 'constants/third_party_settings'
+-
+ destination:
+   plugin: component_entity_form_display
+ migration_dependencies:
+diff --git a/core/modules/field/src/Plugin/migrate/process/d6/FieldInstanceSettings.php b/core/modules/field/src/Plugin/migrate/process/d6/FieldInstanceSettings.php
+index a678820..f4b5bef 100644
+--- a/core/modules/field/src/Plugin/migrate/process/d6/FieldInstanceSettings.php
++++ b/core/modules/field/src/Plugin/migrate/process/d6/FieldInstanceSettings.php
+@@ -7,16 +7,56 @@
+ 
+ namespace Drupal\field\Plugin\migrate\process\d6;
+ 
++use Drupal\Component\Plugin\Exception\PluginNotFoundException;
++use Drupal\Component\Plugin\PluginManagerInterface;
++use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+ use Drupal\migrate\MigrateExecutableInterface;
+ use Drupal\migrate\ProcessPluginBase;
+ use Drupal\migrate\Row;
++use Symfony\Component\DependencyInjection\ContainerInterface;
+ 
+ /**
+  * @MigrateProcessPlugin(
+  *   id = "d6_field_field_settings"
+  * )
+  */
+-class FieldInstanceSettings extends ProcessPluginBase {
++class FieldInstanceSettings extends ProcessPluginBase implements ContainerFactoryPluginInterface {
++
++  /**
++   * The cckfield plugin manager.
++   *
++   * @var \Drupal\Component\Plugin\PluginManagerInterface
++   */
++  protected $cckPluginManager;
++
++  /**
++   * Constructs a FieldSettings plugin.
++   *
++   * @param array $configuration
++   *   The plugin configuration.
++   * @param string $plugin_id
++   *   The plugin ID.
++   * @param mixed $plugin_definition
++   *   The plugin definition.
++   * @param \Drupal\Component\Plugin\PluginManagerInterface $cck_plugin_manager
++   *   The cckfield plugin manager.
++   */
++  public function __construct(array $configuration, $plugin_id, $plugin_definition, PluginManagerInterface $cck_plugin_manager) {
++    parent::__construct($configuration, $plugin_id, $plugin_definition);
++    $this->cckPluginManager = $cck_plugin_manager;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
++    return new static(
++      $configuration,
++      $plugin_id,
++      $plugin_definition,
++      $container->get('plugin.manager.migrate.cckfield')
++    );
++  }
+ 
+   /**
+    * {@inheritdoc}
+@@ -24,6 +64,14 @@ class FieldInstanceSettings extends ProcessPluginBase {
+    * Set the field instance defaults.
+    */
+   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
++    try {
++      return $this->cckPluginManager->createInstance($row->getSourceProperty('type'))
++        ->transformFieldInstanceSettings($row);
++    }
++    catch (PluginNotFoundException $e) {
++
++    }
++
+     list($widget_type, $widget_settings, $field_settings) = $value;
+     $settings = array();
+     switch ($widget_type) {
+@@ -33,56 +81,8 @@ public function transform($value, MigrateExecutableInterface $migrate_executable
+         $settings['prefix'] = $field_settings['prefix'];
+         $settings['suffix'] = $field_settings['suffix'];
+         break;
+-
+-      case 'link':
+-        // $settings['url'] = $widget_settings['default_value'][0]['url'];
+-        // D6 has optional, required, value and none. D8 only has disabled (0)
+-        // optional (1) and required (2).
+-        $map = array('disabled' => 0, 'optional' => 1, 'required' => 2);
+-        $settings['title'] = $map[$field_settings['title']];
+-        break;
+-
+-      case 'filefield_widget':
+-        $settings['file_extensions'] = $widget_settings['file_extensions'];
+-        $settings['file_directory'] = $widget_settings['file_path'];
+-        $settings['description_field'] = $field_settings['description_field'];
+-        $settings['max_filesize'] = $this->convertSizeUnit($widget_settings['max_filesize_per_file']);
+-        break;
+-
+-      case 'imagefield_widget':
+-        $settings['file_extensions'] = $widget_settings['file_extensions'];
+-        $settings['file_directory'] = 'public://';
+-        $settings['max_filesize'] = $this->convertSizeUnit($widget_settings['max_filesize_per_file']);
+-        $settings['alt_field'] = $widget_settings['alt'];
+-        $settings['alt_field_required'] = $widget_settings['custom_alt'];
+-        $settings['title_field'] = $widget_settings['title'];
+-        $settings['title_field_required'] = $widget_settings['custom_title'];
+-        $settings['max_resolution'] = $widget_settings['max_resolution'];
+-        $settings['min_resolution'] = $widget_settings['min_resolution'];
+-        break;
+-
+     }
+     return $settings;
+   }
+ 
+-  /**
+-   * Convert file size strings into their D8 format.
+-   *
+-   * D6 stores file size using a "K" for kilobytes and "M" for megabytes where
+-   * as D8 uses "KB" and "MB" respectively.
+-   *
+-   * @param string $size_string
+-   *   The size string, eg 10M
+-   *
+-   * @return string
+-   *   The D8 version of the size string.
+-   */
+-  protected function convertSizeUnit($size_string) {
+-    $size_unit = substr($size_string, strlen($size_string) - 1);
+-    if ($size_unit == "M" || $size_unit == "K") {
+-      return $size_string . "B";
+-    }
+-    return $size_string;
+-  }
+-
+ }
+diff --git a/core/modules/field/src/Plugin/migrate/process/d6/FieldSettings.php b/core/modules/field/src/Plugin/migrate/process/d6/FieldSettings.php
+index 96be489..ed9563c 100644
+--- a/core/modules/field/src/Plugin/migrate/process/d6/FieldSettings.php
++++ b/core/modules/field/src/Plugin/migrate/process/d6/FieldSettings.php
+@@ -7,9 +7,13 @@
+ 
+ namespace Drupal\field\Plugin\migrate\process\d6;
+ 
++use Drupal\Component\Plugin\Exception\PluginNotFoundException;
++use Drupal\Component\Plugin\PluginManagerInterface;
++use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+ use Drupal\migrate\MigrateExecutableInterface;
+ use Drupal\migrate\ProcessPluginBase;
+ use Drupal\migrate\Row;
++use Symfony\Component\DependencyInjection\ContainerInterface;
+ 
+ /**
+  * Get the field settings.
+@@ -18,16 +22,57 @@
+  *   id = "field_settings"
+  * )
+  */
+-class FieldSettings extends ProcessPluginBase {
++class FieldSettings extends ProcessPluginBase implements ContainerFactoryPluginInterface {
+ 
+   /**
+-   * {@inheritdoc}
++   * The cckfield plugin manager.
++   *
++   * @var \Drupal\Component\Plugin\PluginManagerInterface
++   */
++  protected $cckPluginManager;
++
++  /**
++   * Constructs a FieldSettings plugin.
+    *
+-   * Get the field default/mapped settings.
++   * @param array $configuration
++   *   The plugin configuration.
++   * @param string $plugin_id
++   *   The plugin ID.
++   * @param mixed $plugin_definition
++   *   The plugin definition.
++   * @param \Drupal\Component\Plugin\PluginManagerInterface $cck_plugin_manager
++   *   The cckfield plugin manager.
++   */
++  public function __construct(array $configuration, $plugin_id, $plugin_definition, PluginManagerInterface $cck_plugin_manager) {
++    parent::__construct($configuration, $plugin_id, $plugin_definition);
++    $this->cckPluginManager = $cck_plugin_manager;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
++    return new static(
++      $configuration,
++      $plugin_id,
++      $plugin_definition,
++      $container->get('plugin.manager.migrate.cckfield')
++    );
++  }
++
++  /**
++   * {@inheritdoc}
+    */
+   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
+-    list($field_type, $global_settings) = $value;
+-    return $this->getSettings($field_type, $global_settings);
++    list($field_type, $global_settings, $source_field_type) = $value;
++
++    try {
++      return $this->cckPluginManager->createInstance($source_field_type)
++        ->transformFieldStorageSettings($row);
++    }
++    catch (PluginNotFoundException $e) {
++      return $this->getSettings($field_type, $global_settings);
++    }
+   }
+ 
+   /**
+@@ -42,8 +87,6 @@ public function transform($value, MigrateExecutableInterface $migrate_executable
+    *   A valid array of settings.
+    */
+   public function getSettings($field_type, $global_settings) {
+-    $max_length = isset($global_settings['max_length']) ? $global_settings['max_length'] : '';
+-    $max_length = empty($max_length) ? 255 : $max_length;
+     $allowed_values = [];
+     if (isset($global_settings['allowed_values'])) {
+       $list = explode("\n", $global_settings['allowed_values']);
+@@ -65,9 +108,6 @@ public function getSettings($field_type, $global_settings) {
+     }
+ 
+     $settings = array(
+-      'text' => array(
+-        'max_length' => $max_length,
+-      ),
+       'datetime' => array('datetime_type' => 'datetime'),
+       'list_string' => array(
+         'allowed_values' => $allowed_values,
+diff --git a/core/modules/field/src/Plugin/migrate/process/d6/FieldWidgetType.php b/core/modules/field/src/Plugin/migrate/process/d6/FieldWidgetType.php
+new file mode 100644
+index 0000000..a30d84c
+--- /dev/null
++++ b/core/modules/field/src/Plugin/migrate/process/d6/FieldWidgetType.php
+@@ -0,0 +1,101 @@
++<?php
++
++/**
++ * @file
++ * Contains \Drupal\field\Plugin\migrate\process\d6\FieldWidgetType.
++ */
++
++namespace Drupal\field\Plugin\migrate\process\d6;
++
++use Drupal\Component\Plugin\Exception\PluginNotFoundException;
++use Drupal\Component\Plugin\PluginManagerInterface;
++use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
++use Drupal\migrate\MigrateExecutableInterface;
++use Drupal\migrate\ProcessPluginBase;
++use Drupal\migrate\Row;
++use Symfony\Component\DependencyInjection\ContainerInterface;
++
++/**
++ * Get the field instance widget type.
++ *
++ * @MigrateProcessPlugin(
++ *   id = "field_instance_widget_type"
++ * )
++ */
++class FieldWidgetType extends ProcessPluginBase implements ContainerFactoryPluginInterface {
++
++  /**
++   * The cckfield plugin manager.
++   *
++   * @var \Drupal\Component\Plugin\PluginManagerInterface
++   */
++  protected $cckPluginManager;
++
++  /**
++   * Constructs a FieldSettings plugin.
++   *
++   * @param array $configuration
++   *   The plugin configuration.
++   * @param string $plugin_id
++   *   The plugin ID.
++   * @param mixed $plugin_definition
++   *   The plugin definition.
++   * @param \Drupal\Component\Plugin\PluginManagerInterface $cck_plugin_manager
++   *   The cckfield plugin manager.
++   */
++  public function __construct(array $configuration, $plugin_id, $plugin_definition, PluginManagerInterface $cck_plugin_manager) {
++    parent::__construct($configuration, $plugin_id, $plugin_definition);
++    $this->cckPluginManager = $cck_plugin_manager;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
++    return new static(
++      $configuration,
++      $plugin_id,
++      $plugin_definition,
++      $container->get('plugin.manager.migrate.cckfield')
++    );
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
++    $source_widget_type = $row->getSourceProperty('widget_type');
++    $source_field_type = $row->getSourceProperty('type');
++
++    try {
++      return $this->cckPluginManager->createInstance($source_field_type)
++        ->transformWidgetType($row);
++    }
++    catch (PluginNotFoundException $e) {
++      return $this->getWidget($source_widget_type);
++    }
++  }
++
++  /**
++   * Returns widget for a given source widget type.
++   *
++   * @param $source_widget_type
++   *
++   * @return string|null
++   */
++  protected function getWidget($source_widget_type) {
++    $map = [
++      'number' => 'number',
++      'email_textfield' => 'email_default',
++      'date_select' => 'datetime_default',
++      'date_text' => 'datetime_default',
++      'imagefield_widget' => 'image_image',
++      'phone_textfield' => 'telephone_default',
++      'optionwidgets_onoff' => 'boolean_checkbox',
++      'optionwidgets_buttons' => 'options_buttons',
++      'optionwidgets_select' => 'options_select',
++    ];
++    return isset($map[$source_widget_type]) ? $map[$source_widget_type] : NULL;
++  }
++
++}
+diff --git a/core/modules/field/src/Tests/Migrate/d6/MigrateFieldInstanceTest.php b/core/modules/field/src/Tests/Migrate/d6/MigrateFieldInstanceTest.php
+index 8f0e96b..b6da70a 100644
+--- a/core/modules/field/src/Tests/Migrate/d6/MigrateFieldInstanceTest.php
++++ b/core/modules/field/src/Tests/Migrate/d6/MigrateFieldInstanceTest.php
+@@ -91,6 +91,55 @@ public function testFieldInstanceMigration() {
+     $this->assertIdentical('default link title', $entity->field_test_link->title, 'Field field_test_link default title is correct.');
+     $this->assertIdentical('https://www.drupal.org', $entity->field_test_link->url, 'Field field_test_link default title is correct.');
+     $this->assertIdentical([], $entity->field_test_link->options['attributes']);
++
++    // Test node reference to entity reference migration.
++    $field = FieldConfig::load('node.story.field_node_reference');
++    $this->assertIdentical('Node reference', $field->label());
++    $this->assertIdentical('default:node', $field->getSetting('handler'));
++    $expected = [
++      'target_bundles' => []
++    ];
++    $this->assertIdentical($expected, $field->getSetting('handler_settings'));
++
++    // Test node reference to entity reference migration.
++    $field = FieldConfig::load('node.story.field_node_reference_2');
++    $this->assertIdentical('Node reference 2', $field->label());
++    $this->assertIdentical('default:node', $field->getSetting('handler'));
++    $expected = [
++      'target_bundles' => [
++        'article' => 'article',
++      ],
++    ];
++    $this->assertIdentical($expected, $field->getSetting('handler_settings'));
++
++    // Test node reference to entity reference migration.
++    $field = FieldConfig::load('node.story.field_user_reference');
++    $this->assertIdentical('User reference', $field->label());
++    $this->assertIdentical('default:user', $field->getSetting('handler'));
++    $expected = [
++      'include_anonymous' => FALSE,
++      'filter' => [
++        'type' => '_none'
++      ],
++      'target_bundles' => NULL,
++    ];
++    $this->assertIdentical($expected, $field->getSetting('handler_settings'));
++
++    // Test node reference to entity reference migration.
++    $field = FieldConfig::load('node.story.field_user_reference_2');
++    $this->assertIdentical('User reference 2', $field->label());
++    $this->assertIdentical('default:user', $field->getSetting('handler'));
++    $expected = [
++      'include_anonymous' => FALSE,
++      'filter' => [
++        'type' => 'role',
++        'role' => [
++          'migrate_test_role_1' => 'migrate_test_role_1'
++        ],
++      ],
++      'target_bundles' => NULL,
++    ];
++    $this->assertIdentical($expected, $field->getSetting('handler_settings'));
+   }
+ 
+   /**
+diff --git a/core/modules/field/src/Tests/Migrate/d6/MigrateFieldTest.php b/core/modules/field/src/Tests/Migrate/d6/MigrateFieldTest.php
+index 47b8bbd..b201baa 100644
+--- a/core/modules/field/src/Tests/Migrate/d6/MigrateFieldTest.php
++++ b/core/modules/field/src/Tests/Migrate/d6/MigrateFieldTest.php
+@@ -96,6 +96,16 @@ public function testFields() {
+     $field_storage = FieldStorageConfig::load('node.field_test_text_single_checkbox');
+     $this->assertIdentical("boolean", $field_storage->getType(), t('Field type is @fieldtype. It should be boolean.', array('@fieldtype' => $field_storage->getType())));
+ 
++    // Node reference to entity reference migration.
++    $field_storage = FieldStorageConfig::load('node.field_node_reference');
++    $this->assertIdentical('entity_reference', $field_storage->getType());
++    $this->assertIdentical('node', $field_storage->getSetting('target_type'));
++
++    // User reference to entity reference migration.
++    $field_storage = FieldStorageConfig::load('node.field_user_reference');
++    $this->assertIdentical('entity_reference', $field_storage->getType());
++    $this->assertIdentical('user', $field_storage->getSetting('target_type'));
++
+     // Validate that the source count and processed count match up.
+     /** @var \Drupal\migrate\Entity\MigrationInterface $migration */
+     $migration = Migration::load('d6_field');
+diff --git a/core/modules/field/src/Tests/Migrate/d6/MigrateFieldWidgetSettingsTest.php b/core/modules/field/src/Tests/Migrate/d6/MigrateFieldWidgetSettingsTest.php
+index 891eb69..8b20af8 100644
+--- a/core/modules/field/src/Tests/Migrate/d6/MigrateFieldWidgetSettingsTest.php
++++ b/core/modules/field/src/Tests/Migrate/d6/MigrateFieldWidgetSettingsTest.php
+@@ -35,27 +35,38 @@ public function testWidgetSettings() {
+ 
+     // Text field.
+     $component = $form_display->getComponent('field_test');
++    $expected = [];
+     $expected = array('weight' => 1, 'type' => 'text_textfield');
+     $expected['settings'] = array('size' => 60, 'placeholder' => '');
+-    $expected['third_party_settings'] = array();
++    $expected['third_party_settings'] = [];
+     $this->assertIdentical($expected, $component, 'Text field settings are correct.');
+ 
+     // Integer field.
+     $component = $form_display->getComponent('field_test_two');
+-    $expected['type'] = 'number';
++    $expected = [];
+     $expected['weight'] = 1;
++    $expected['type'] = 'number';
+     $expected['settings'] = array('placeholder' => '');
++    $expected['third_party_settings'] = [];
+     $this->assertIdentical($expected, $component);
+ 
+     // Float field.
+     $component = $form_display->getComponent('field_test_three');
++    $expected = [];
+     $expected['weight'] = 2;
++    $expected['type'] = 'number';
++    $expected['settings'] = array('placeholder' => '');
++    $expected['third_party_settings'] = [];
+     $this->assertIdentical($expected, $component);
+ 
+     // Email field.
+     $component = $form_display->getComponent('field_test_email');
+-    $expected['type'] = 'email_default';
++    $expected = [];
++
+     $expected['weight'] = 6;
++    $expected['type'] = 'email_default';
++    $expected['settings'] = array('placeholder' => '');
++    $expected['third_party_settings'] = [];
+     $this->assertIdentical($expected, $component);
+ 
+     // Link field.
+@@ -66,38 +77,54 @@ public function testWidgetSettings() {
+ 
+     // File field.
+     $component = $form_display->getComponent('field_test_filefield');
+-    $expected['type'] = 'file_generic';
++    $expected = [];
+     $expected['weight'] = 8;
++    $expected['type'] = 'file_generic';
+     $expected['settings'] = array('progress_indicator' => 'bar');
++    $expected['third_party_settings'] = [];
+     $this->assertIdentical($expected, $component);
+ 
+     // Image field.
+     $component = $form_display->getComponent('field_test_imagefield');
+-    $expected['type'] = 'image_image';
++    $expected = [];
+     $expected['weight'] = 9;
+     $expected['settings'] = array('progress_indicator' => 'bar', 'preview_image_style' => 'thumbnail');
++    $expected['third_party_settings'] = [];
++    $expected['type'] = 'image_image';
+     $this->assertIdentical($expected, $component);
+ 
+     // Phone field.
+     $component = $form_display->getComponent('field_test_phone');
+-    $expected['type'] = 'telephone_default';
++    $expected = [];
+     $expected['weight'] = 13;
++    $expected['type'] = 'telephone_default';
+     $expected['settings'] = array('placeholder' => '');
++    $expected['third_party_settings'] = [];
+     $this->assertIdentical($expected, $component);
+ 
+     // Date fields.
+     $component = $form_display->getComponent('field_test_date');
+-    $expected['type'] = 'datetime_default';
++    $expected = [];
+     $expected['weight'] = 10;
++    $expected['type'] = 'datetime_default';
+     $expected['settings'] = array();
++    $expected['third_party_settings'] = [];
+     $this->assertIdentical($expected, $component);
+ 
+     $component = $form_display->getComponent('field_test_datestamp');
++    $expected = [];
+     $expected['weight'] = 11;
++    $expected['type'] = 'datetime_default';
++    $expected['settings'] = array();
++    $expected['third_party_settings'] = [];
+     $this->assertIdentical($expected, $component);
+ 
+     $component = $form_display->getComponent('field_test_datetime');
++    $expected = [];
+     $expected['weight'] = 12;
++    $expected['type'] = 'datetime_default';
++    $expected['settings'] = array();
++    $expected['third_party_settings'] = [];
+     $this->assertIdentical($expected, $component);
+   }
+ 
+diff --git a/core/modules/field/tests/src/Unit/Plugin/migrate/process/d6/FieldSettingsTest.php b/core/modules/field/tests/src/Unit/Plugin/migrate/process/d6/FieldSettingsTest.php
+index c0a12dd..4365b48 100644
+--- a/core/modules/field/tests/src/Unit/Plugin/migrate/process/d6/FieldSettingsTest.php
++++ b/core/modules/field/tests/src/Unit/Plugin/migrate/process/d6/FieldSettingsTest.php
+@@ -7,9 +7,10 @@
+ 
+ namespace Drupal\Tests\field\Unit\Plugin\migrate\process\d6;
+ 
++use Drupal\Component\Plugin\Exception\PluginNotFoundException;
+ use Drupal\field\Plugin\migrate\process\d6\FieldSettings;
+-use Drupal\migrate\Entity\MigrationInterface;
+ use Drupal\migrate\MigrateExecutableInterface;
++use Drupal\migrate\Plugin\MigratePluginManager;
+ use Drupal\migrate\Row;
+ use Drupal\Tests\UnitTestCase;
+ 
+@@ -24,16 +25,22 @@ class FieldSettingsTest extends UnitTestCase {
+    *
+    * @dataProvider getSettingsProvider
+    */
+-  public function testGetSettings($field_type, $field_settings, $allowed_values) {
+-    $migration = $this->getMock(MigrationInterface::class);
+-    $plugin = new FieldSettings([], 'd6_field_settings', [], $migration);
++  public function testGetSettings($field_type, $field_settings, $source_field_type, $allowed_values) {
++    $cck_plugin_manager = $this->getMockBuilder(MigratePluginManager::class)
++      ->disableOriginalConstructor()
++      ->getMock();
++
++    $cck_plugin_manager->method('createInstance')
++      ->willThrowException(new PluginNotFoundException($source_field_type));
++
++    $plugin = new FieldSettings([], 'd6_field_settings', [], $cck_plugin_manager);
+ 
+     $executable = $this->getMock(MigrateExecutableInterface::class);
+     $row = $this->getMockBuilder(Row::class)
+       ->disableOriginalConstructor()
+       ->getMock();
+ 
+-    $result = $plugin->transform([$field_type, $field_settings], $executable, $row, 'foo');
++    $result = $plugin->transform([$field_type, $field_settings, $source_field_type], $executable, $row, 'foo');
+     $this->assertSame($allowed_values, $result['allowed_values']);
+   }
+ 
+@@ -45,6 +52,7 @@ public function getSettingsProvider() {
+       array(
+         'list_integer',
+         array('allowed_values' => "1|One\n2|Two\n3"),
++        'list_integer',
+         array(
+           '1' => 'One',
+           '2' => 'Two',
+@@ -54,16 +62,19 @@ public function getSettingsProvider() {
+       array(
+         'list_string',
+         array('allowed_values' => NULL),
++        'list_string',
+         array(),
+       ),
+       array(
+         'list_float',
+         array('allowed_values' => ""),
++        'list_float',
+         array(),
+       ),
+       array(
+         'boolean',
+         array(),
++        'boolean',
+         array(),
+       ),
+     );
+diff --git a/core/modules/file/src/Plugin/migrate/cckfield/d6/FileField.php b/core/modules/file/src/Plugin/migrate/cckfield/d6/FileField.php
+index 4e4e456..9d68492 100644
+--- a/core/modules/file/src/Plugin/migrate/cckfield/d6/FileField.php
++++ b/core/modules/file/src/Plugin/migrate/cckfield/d6/FileField.php
+@@ -59,4 +59,59 @@ public function getFieldType(Row $row) {
+     return $row->getSourceProperty('widget_type') == 'imagefield_widget' ? 'image' : 'file';
+   }
+ 
++
++  /**
++   * {@inheritdoc}
++   */
++
++  public function transformFieldInstanceSettings(Row $row) {
++    $widget_type = $row->getSourceProperty('widget_type');
++    $widget_settings = $row->getSourceProperty('widget_settings');
++    $field_settings = $row->getSourceProperty('global_settings');
++    $settings = [];
++
++    switch ($widget_type) {
++      case 'filefield_widget':
++        $settings['file_extensions'] = $widget_settings['file_extensions'];
++        $settings['file_directory'] = $widget_settings['file_path'];
++        $settings['description_field'] = $field_settings['description_field'];
++        $settings['max_filesize'] = $this->convertSizeUnit($widget_settings['max_filesize_per_file']);
++        break;
++
++      case 'imagefield_widget':
++        $settings['file_extensions'] = $widget_settings['file_extensions'];
++        $settings['file_directory'] = 'public://';
++        $settings['max_filesize'] = $this->convertSizeUnit($widget_settings['max_filesize_per_file']);
++        $settings['alt_field'] = $widget_settings['alt'];
++        $settings['alt_field_required'] = $widget_settings['custom_alt'];
++        $settings['title_field'] = $widget_settings['title'];
++        $settings['title_field_required'] = $widget_settings['custom_title'];
++        $settings['max_resolution'] = $widget_settings['max_resolution'];
++        $settings['min_resolution'] = $widget_settings['min_resolution'];
++        break;
++    }
++
++    return $settings;
++  }
++
++  /**
++   * Convert file size strings into their D8 format.
++   *
++   * D6 stores file size using a "K" for kilobytes and "M" for megabytes where
++   * as D8 uses "KB" and "MB" respectively.
++   *
++   * @param string $size_string
++   *   The size string, e.g. 10M
++   *
++   * @return string
++   *   The D8 version of the size string.
++   */
++  protected function convertSizeUnit($size_string) {
++    $size_unit = substr($size_string, strlen($size_string) - 1);
++    if ($size_unit == "M" || $size_unit == "K") {
++      return $size_string . "B";
++    }
++    return $size_string;
++  }
++
+ }
+diff --git a/core/modules/file/src/Plugin/migrate/cckfield/d7/FileField.php b/core/modules/file/src/Plugin/migrate/cckfield/d7/FileField.php
+index d9426fd..86585e7 100644
+--- a/core/modules/file/src/Plugin/migrate/cckfield/d7/FileField.php
++++ b/core/modules/file/src/Plugin/migrate/cckfield/d7/FileField.php
+@@ -64,4 +64,57 @@ public function getFieldType(Row $row) {
+     return $row->getSourceProperty('widget_type') == 'imagefield_widget' ? 'image' : 'file';
+   }
+ 
++  /**
++   * {@inheritdoc}
++   */
++  public function transformFieldInstanceSettings(Row $row) {
++    $widget_type = $row->getSourceProperty('widget_type');
++    $widget_settings = $row->getSourceProperty('widget_settings');
++    $field_settings = $row->getSourceProperty('global_settings');
++    $settings = [];
++
++    switch ($widget_type) {
++      case 'filefield_widget':
++        $settings['file_extensions'] = $widget_settings['file_extensions'];
++        $settings['file_directory'] = $widget_settings['file_path'];
++        $settings['description_field'] = $field_settings['description_field'];
++        $settings['max_filesize'] = $this->convertSizeUnit($widget_settings['max_filesize_per_file']);
++        break;
++
++      case 'imagefield_widget':
++        $settings['file_extensions'] = $widget_settings['file_extensions'];
++        $settings['file_directory'] = 'public://';
++        $settings['max_filesize'] = $this->convertSizeUnit($widget_settings['max_filesize_per_file']);
++        $settings['alt_field'] = $widget_settings['alt'];
++        $settings['alt_field_required'] = $widget_settings['custom_alt'];
++        $settings['title_field'] = $widget_settings['title'];
++        $settings['title_field_required'] = $widget_settings['custom_title'];
++        $settings['max_resolution'] = $widget_settings['max_resolution'];
++        $settings['min_resolution'] = $widget_settings['min_resolution'];
++        break;
++    }
++
++    return $settings;
++  }
++
++  /**
++   * Convert file size strings into their D8 format.
++   *
++   * D6 stores file size using a "K" for kilobytes and "M" for megabytes where
++   * as D8 uses "KB" and "MB" respectively.
++   *
++   * @param string $size_string
++   *   The size string, e.g. 10M
++   *
++   * @return string
++   *   The D8 version of the size string.
++   */
++  protected function convertSizeUnit($size_string) {
++    $size_unit = substr($size_string, strlen($size_string) - 1);
++    if ($size_unit == "M" || $size_unit == "K") {
++      return $size_string . "B";
++    }
++    return $size_string;
++  }
++
+ }
+diff --git a/core/modules/link/src/Plugin/migrate/cckfield/LinkField.php b/core/modules/link/src/Plugin/migrate/cckfield/LinkField.php
+index 327cbda..71ba9e9 100644
+--- a/core/modules/link/src/Plugin/migrate/cckfield/LinkField.php
++++ b/core/modules/link/src/Plugin/migrate/cckfield/LinkField.php
+@@ -8,6 +8,7 @@
+ namespace Drupal\link\Plugin\migrate\cckfield;
+ 
+ use Drupal\migrate\Entity\MigrationInterface;
++use Drupal\migrate\Row;
+ use Drupal\migrate_drupal\Plugin\migrate\cckfield\CckFieldPluginBase;
+ 
+ /**
+@@ -39,11 +40,23 @@ public function getFieldFormatterMap() {
+    * {@inheritdoc}
+    */
+   public function processCckFieldValues(MigrationInterface $migration, $field_name, $data) {
+-      $process = [
+-        'plugin' => 'd6_cck_link',
+-        'source' => $field_name,
+-      ];
+-      $migration->mergeProcessOfProperty($field_name, $process);
++    $process = [
++      'plugin' => 'd6_cck_link',
++      'source' => $field_name,
++    ];
++    $migration->mergeProcessOfProperty($field_name, $process);
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function transformFieldInstanceSettings(Row $row) {
++    $field_settings = $row->getSourceProperty('global_settings');
++    // D6 has optional, required, value and none. D8 only has disabled (0)
++    // optional (1) and required (2).
++    $map = array('disabled' => 0, 'optional' => 1, 'required' => 2);
++    $settings['title'] = $map[$field_settings['title']];
++    return $settings;
+   }
+ 
+ }
+diff --git a/core/modules/migrate_drupal/src/Plugin/MigrateCckFieldInterface.php b/core/modules/migrate_drupal/src/Plugin/MigrateCckFieldInterface.php
+index dbe499d..2a4e245 100644
+--- a/core/modules/migrate_drupal/src/Plugin/MigrateCckFieldInterface.php
++++ b/core/modules/migrate_drupal/src/Plugin/MigrateCckFieldInterface.php
+@@ -89,4 +89,32 @@ public function processCckFieldValues(MigrationInterface $migration, $field_name
+    */
+   public function getFieldType(Row $row);
+ 
++  /**
++   * Apply any custom transformation to the field storage settings.
++   *
++   * @param \Drupal\migrate\Row $row
++   *   The field being migrated.
++   *
++   * @return array
++   *   The destination storage settings.
++   *
++   * @see Drupal\field\Plugin\migrate\process\d6\FieldSettings::transform
++   * @see Drupal\migrate\Plugin\MigrateProcessInterface::transform
++   */
++  public function transformFieldStorageSettings(Row $row);
++
++  /**
++   * Apply any custom transformation to the field instance settings.
++   *
++   * @param \Drupal\migrate\Row $row
++   *   The field being migrated.
++   *
++   * @return array
++   *   The destination instance settings.
++   *
++   * @see Drupal\field\Plugin\migrate\process\d6\FieldInstanceSettings::transform
++   * @see Drupal\migrate\Plugin\MigrateProcessInterface::transform
++   */
++  public function transformFieldInstanceSettings(Row $row);
++
+ }
+diff --git a/core/modules/migrate_drupal/src/Plugin/migrate/cckfield/CckFieldPluginBase.php b/core/modules/migrate_drupal/src/Plugin/migrate/cckfield/CckFieldPluginBase.php
+index 7667c7f..566c7cc 100644
+--- a/core/modules/migrate_drupal/src/Plugin/migrate/cckfield/CckFieldPluginBase.php
++++ b/core/modules/migrate_drupal/src/Plugin/migrate/cckfield/CckFieldPluginBase.php
+@@ -9,6 +9,7 @@
+ 
+ use Drupal\Core\Plugin\PluginBase;
+ use Drupal\migrate\Entity\MigrationInterface;
++use Drupal\migrate\MigrateExecutableInterface;
+ use Drupal\migrate\Row;
+ use Drupal\migrate_drupal\Plugin\MigrateCckFieldInterface;
+ 
+@@ -43,11 +44,7 @@ public function processFieldInstance(MigrationInterface $migration) {
+    * {@inheritdoc}
+    */
+   public function processFieldWidget(MigrationInterface $migration) {
+-    $process = [];
+-    foreach ($this->getFieldWidgetMap() as $source_widget => $destination_widget) {
+-      $process['type']['map'][$source_widget] = $destination_widget;
+-    }
+-    $migration->mergeProcessOfProperty('options/type', $process);
++    // Nothing to do by default with field widgets.
+   }
+ 
+   /**
+@@ -85,4 +82,27 @@ public function getFieldType(Row $row) {
+     }
+   }
+ 
++  /**
++   * {@inheritdoc}
++   */
++  public function transformFieldStorageSettings(Row $row) {
++    return [];
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function transformFieldInstanceSettings(Row $row) {
++    return [];
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function transformWidgetType(Row $row) {
++    $source_widget_type = $row->getSourceProperty('widget_type');
++    $map = $this->getFieldWidgetMap();
++    return isset($map[$source_widget_type]) ? $map[$source_widget_type] : NULL;
++  }
++
+ }
+diff --git a/core/modules/migrate_drupal/src/Tests/d6/MigrateDrupal6TestBase.php b/core/modules/migrate_drupal/src/Tests/d6/MigrateDrupal6TestBase.php
+index 1d8f5f4..602f63b 100644
+--- a/core/modules/migrate_drupal/src/Tests/d6/MigrateDrupal6TestBase.php
++++ b/core/modules/migrate_drupal/src/Tests/d6/MigrateDrupal6TestBase.php
+@@ -90,6 +90,8 @@ protected function migrateFields() {
+       'd6_field_formatter_settings',
+       'd6_upload_field',
+       'd6_upload_field_instance',
++      'd6_user_role',
++      'd6_filter_format'
+     ]);
+   }
+ 
+diff --git a/core/modules/migrate_drupal/tests/fixtures/drupal6.php b/core/modules/migrate_drupal/tests/fixtures/drupal6.php
+index 76b3bf6..7c384f0 100644
+--- a/core/modules/migrate_drupal/tests/fixtures/drupal6.php
++++ b/core/modules/migrate_drupal/tests/fixtures/drupal6.php
+@@ -2064,6 +2064,90 @@
+ ))
+ ->execute();
+ 
++$connection->schema()->createTable('content_field_node_reference', array(
++  'fields' => array(
++    'vid' => array(
++      'type' => 'int',
++      'not null' => TRUE,
++      'size' => 'normal',
++      'default' => '0',
++      'unsigned' => TRUE,
++    ),
++    'nid' => array(
++      'type' => 'int',
++      'not null' => TRUE,
++      'size' => 'normal',
++      'default' => '0',
++      'unsigned' => TRUE,
++    ),
++    'delta' => array(
++      'type' => 'int',
++      'not null' => TRUE,
++      'size' => 'normal',
++      'default' => '0',
++      'unsigned' => TRUE,
++    ),
++    'field_node_reference_nid' => array(
++      'type' => 'int',
++      'not null' => FALSE,
++      'size' => 'normal',
++      'unsigned' => TRUE,
++    ),
++  ),
++  'primary key' => array(
++    'vid',
++    'delta',
++  ),
++  'indexes' => array(
++    'nid' => array(
++      'nid',
++    ),
++    'field_node_reference_nid' => array(
++      'field_node_reference_nid',
++    ),
++  ),
++  'mysql_character_set' => 'utf8',
++));
++
++$connection->insert('content_field_node_reference')
++->fields(array(
++  'vid',
++  'nid',
++  'delta',
++  'field_node_reference_nid',
++))
++->values(array(
++  'vid' => '1',
++  'nid' => '1',
++  'delta' => '0',
++  'field_node_reference_nid' => 2,
++))
++->values(array(
++  'vid' => '2',
++  'nid' => '1',
++  'delta' => '0',
++  'field_node_reference_nid' => NULL,
++))
++->values(array(
++  'vid' => '3',
++  'nid' => '2',
++  'delta' => '0',
++  'field_node_reference_nid' => NULL,
++))
++->values(array(
++  'vid' => '5',
++  'nid' => '2',
++  'delta' => '0',
++  'field_node_reference_nid' => NULL,
++))
++->values(array(
++  'vid' => '12',
++  'nid' => '9',
++  'delta' => '0',
++  'field_node_reference_nid' => NULL,
++))
++->execute();
++
+ $connection->schema()->createTable('content_field_test', array(
+   'fields' => array(
+     'vid' => array(
+@@ -2294,6 +2378,90 @@
+ ))
+ ->execute();
+ 
++$connection->schema()->createTable('content_field_user_reference', array(
++  'fields' => array(
++    'vid' => array(
++      'type' => 'int',
++      'not null' => TRUE,
++      'size' => 'normal',
++      'default' => '0',
++      'unsigned' => TRUE,
++    ),
++    'nid' => array(
++      'type' => 'int',
++      'not null' => TRUE,
++      'size' => 'normal',
++      'default' => '0',
++      'unsigned' => TRUE,
++    ),
++    'delta' => array(
++      'type' => 'int',
++      'not null' => TRUE,
++      'size' => 'normal',
++      'default' => '0',
++      'unsigned' => TRUE,
++    ),
++    'field_user_reference_uid' => array(
++      'type' => 'int',
++      'not null' => FALSE,
++      'size' => 'normal',
++      'unsigned' => TRUE,
++    ),
++  ),
++  'primary key' => array(
++    'vid',
++    'delta',
++  ),
++  'indexes' => array(
++    'nid' => array(
++      'nid',
++    ),
++    'field_user_reference_uid' => array(
++      'field_user_reference_uid',
++    ),
++  ),
++  'mysql_character_set' => 'utf8',
++));
++
++$connection->insert('content_field_user_reference')
++->fields(array(
++  'vid',
++  'nid',
++  'delta',
++  'field_user_reference_uid',
++))
++->values(array(
++  'vid' => '1',
++  'nid' => '1',
++  'delta' => '0',
++  'field_user_reference_uid' => NULL,
++))
++->values(array(
++  'vid' => '2',
++  'nid' => '1',
++  'delta' => '0',
++  'field_user_reference_uid' => NULL,
++))
++->values(array(
++  'vid' => '3',
++  'nid' => '2',
++  'delta' => '0',
++  'field_user_reference_uid' => NULL,
++))
++->values(array(
++  'vid' => '5',
++  'nid' => '2',
++  'delta' => '0',
++  'field_user_reference_uid' => NULL,
++))
++->values(array(
++  'vid' => '12',
++  'nid' => '9',
++  'delta' => '0',
++  'field_user_reference_uid' => NULL,
++))
++->execute();
++
+ $connection->schema()->createTable('content_group', array(
+   'fields' => array(
+     'group_type' => array(
+@@ -2461,6 +2629,30 @@
+   'locked' => '0',
+ ))
+ ->values(array(
++  'field_name' => 'field_node_reference',
++  'type' => 'nodereference',
++  'global_settings' => 'a:1:{s:19:"referenceable_types";a:9:{s:7:"article";i:0;s:7:"company";i:0;s:8:"employee";i:0;s:10:"test_event";i:0;s:9:"test_page";i:0;s:11:"test_planet";i:0;s:10:"test_story";i:0;s:7:"sponsor";i:0;s:5:"story";i:0;}}',
++  'required' => '0',
++  'multiple' => '1',
++  'db_storage' => '0',
++  'module' => 'nodereference',
++  'db_columns' => 'a:1:{s:3:"nid";a:4:{s:4:"type";s:3:"int";s:8:"unsigned";b:1;s:8:"not null";b:0;s:5:"index";b:1;}}',
++  'active' => '1',
++  'locked' => '0',
++))
++->values(array(
++  'field_name' => 'field_node_reference_2',
++  'type' => 'nodereference',
++  'global_settings' => 'a:1:{s:19:"referenceable_types";a:9:{s:7:"article";s:7:"article";s:7:"company";i:0;s:8:"employee";i:0;s:10:"test_event";i:0;s:9:"test_page";i:0;s:11:"test_planet";i:0;s:10:"test_story";i:0;s:7:"sponsor";i:0;s:5:"story";i:0;}}',
++  'required' => '0',
++  'multiple' => '0',
++  'db_storage' => '1',
++  'module' => 'nodereference',
++  'db_columns' => 'a:1:{s:3:"nid";a:4:{s:4:"type";s:3:"int";s:8:"unsigned";b:1;s:8:"not null";b:0;s:5:"index";b:1;}}',
++  'active' => '1',
++  'locked' => '0',
++))
++->values(array(
+   'field_name' => 'field_test',
+   'type' => 'text',
+   'global_settings' => 'a:4:{s:15:"text_processing";s:1:"1";s:10:"max_length";s:0:"";s:14:"allowed_values";s:0:"";s:18:"allowed_values_php";s:0:"";}',
+@@ -2700,6 +2892,30 @@
+   'active' => '1',
+   'locked' => '0',
+ ))
++->values(array(
++  'field_name' => 'field_user_reference',
++  'type' => 'userreference',
++  'global_settings' => 'a:2:{s:19:"referenceable_roles";a:4:{i:2;i:0;i:3;i:0;i:4;i:0;i:5;i:0;}s:20:"referenceable_status";s:0:"";}',
++  'required' => '0',
++  'multiple' => '1',
++  'db_storage' => '0',
++  'module' => 'userreference',
++  'db_columns' => 'a:1:{s:3:"uid";a:4:{s:4:"type";s:3:"int";s:8:"unsigned";b:1;s:8:"not null";b:0;s:5:"index";b:1;}}',
++  'active' => '1',
++  'locked' => '0',
++))
++->values(array(
++  'field_name' => 'field_user_reference_2',
++  'type' => 'userreference',
++  'global_settings' => 'a:2:{s:19:"referenceable_roles";a:4:{i:3;i:3;i:2;i:0;i:4;i:0;i:5;i:0;}s:20:"referenceable_status";s:1:"1";}',
++  'required' => '0',
++  'multiple' => '0',
++  'db_storage' => '1',
++  'module' => 'userreference',
++  'db_columns' => 'a:1:{s:3:"uid";a:4:{s:4:"type";s:3:"int";s:8:"unsigned";b:1;s:8:"not null";b:0;s:5:"index";b:1;}}',
++  'active' => '1',
++  'locked' => '0',
++))
+ ->execute();
+ 
+ $connection->schema()->createTable('content_node_field_instance', array(
+@@ -2795,6 +3011,30 @@
+   'widget_active' => '1',
+ ))
+ ->values(array(
++  'field_name' => 'field_node_reference',
++  'type_name' => 'story',
++  'weight' => '21',
++  'label' => 'Node reference',
++  'widget_type' => 'nodereference_autocomplete',
++  'widget_settings' => 'a:4:{s:18:"autocomplete_match";s:8:"contains";s:4:"size";s:2:"60";s:13:"default_value";a:1:{i:0;a:2:{s:3:"nid";N;s:14:"_error_element";s:55:"default_value_widget][field_node_reference][0][nid][nid";}}s:17:"default_value_php";N;}',
++  'display_settings' => 'a:5:{s:5:"label";a:2:{s:6:"format";s:5:"above";s:7:"exclude";i:0;}i:5;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
++  'description' => '',
++  'widget_module' => 'nodereference',
++  'widget_active' => '1',
++))
++->values(array(
++  'field_name' => 'field_node_reference_2',
++  'type_name' => 'story',
++  'weight' => '23',
++  'label' => 'Node reference 2',
++  'widget_type' => 'nodereference_select',
++  'widget_settings' => 'a:4:{s:18:"autocomplete_match";s:8:"contains";s:4:"size";i:60;s:13:"default_value";a:1:{i:0;a:1:{s:3:"nid";s:0:"";}}s:17:"default_value_php";N;}',
++  'display_settings' => 'a:5:{s:5:"label";a:2:{s:6:"format";s:5:"above";s:7:"exclude";i:0;}i:5;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
++  'description' => '',
++  'widget_module' => 'nodereference',
++  'widget_active' => '1',
++))
++->values(array(
+   'field_name' => 'field_test',
+   'type_name' => 'story',
+   'weight' => '1',
+@@ -3058,6 +3298,30 @@
+   'widget_module' => 'number',
+   'widget_active' => '1',
+ ))
++->values(array(
++  'field_name' => 'field_user_reference',
++  'type_name' => 'story',
++  'weight' => '20',
++  'label' => 'User reference',
++  'widget_type' => 'userreference_autocomplete',
++  'widget_settings' => 'a:5:{s:18:"autocomplete_match";s:8:"contains";s:4:"size";s:2:"60";s:12:"reverse_link";i:0;s:13:"default_value";a:1:{i:0;a:2:{s:3:"uid";N;s:14:"_error_element";s:55:"default_value_widget][field_user_reference][0][uid][uid";}}s:17:"default_value_php";N;}',
++  'display_settings' => 'a:5:{s:5:"label";a:2:{s:6:"format";s:5:"above";s:7:"exclude";i:0;}i:5;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
++  'description' => '',
++  'widget_module' => 'userreference',
++  'widget_active' => '1',
++))
++->values(array(
++  'field_name' => 'field_user_reference_2',
++  'type_name' => 'story',
++  'weight' => '21',
++  'label' => 'User reference 2',
++  'widget_type' => 'userreference_select',
++  'widget_settings' => 'a:5:{s:18:"autocomplete_match";s:8:"contains";s:4:"size";i:60;s:12:"reverse_link";i:0;s:13:"default_value";a:1:{i:0;a:1:{s:3:"uid";s:0:"";}}s:17:"default_value_php";N;}',
++  'display_settings' => 'a:5:{s:5:"label";a:2:{s:6:"format";s:5:"above";s:7:"exclude";i:0;}i:5;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
++  'description' => '',
++  'widget_module' => 'userreference',
++  'widget_active' => '1',
++))
+ ->execute();
+ 
+ $connection->schema()->createTable('content_type_page', array(
+@@ -3254,6 +3518,18 @@
+       'not null' => FALSE,
+       'size' => 'big',
+     ),
++    'field_user_reference_2_uid' => array(
++      'type' => 'int',
++      'not null' => FALSE,
++      'size' => 'normal',
++      'unsigned' => TRUE,
++    ),
++    'field_node_reference_2_nid' => array(
++      'type' => 'int',
++      'not null' => FALSE,
++      'size' => 'normal',
++      'unsigned' => TRUE,
++    ),
+   ),
+   'primary key' => array(
+     'vid',
+@@ -3262,6 +3538,12 @@
+     'nid' => array(
+       'nid',
+     ),
++    'field_user_reference_2_uid' => array(
++      'field_user_reference_2_uid',
++    ),
++    'field_node_reference_2_nid' => array(
++      'field_node_reference_2_nid',
++    ),
+   ),
+   'mysql_character_set' => 'utf8',
+ ));
+@@ -3295,6 +3577,8 @@
+   'field_test_imagefield_list',
+   'field_test_imagefield_data',
+   'field_test_text_single_checkbox2_value',
++  'field_user_reference_2_uid',
++  'field_node_reference_2_nid',
+ ))
+ ->values(array(
+   'nid' => '1',
+@@ -3324,6 +3608,8 @@
+   'field_test_imagefield_list' => NULL,
+   'field_test_imagefield_data' => NULL,
+   'field_test_text_single_checkbox2_value' => 'Hello',
++  'field_user_reference_2_uid' => NULL,
++  'field_node_reference_2_nid' => NULL,
+ ))
+ ->values(array(
+   'nid' => '1',
+@@ -3353,6 +3639,8 @@
+   'field_test_imagefield_list' => NULL,
+   'field_test_imagefield_data' => NULL,
+   'field_test_text_single_checkbox2_value' => NULL,
++  'field_user_reference_2_uid' => NULL,
++  'field_node_reference_2_nid' => NULL,
+ ))
+ ->values(array(
+   'nid' => '2',
+@@ -3382,6 +3670,8 @@
+   'field_test_imagefield_list' => NULL,
+   'field_test_imagefield_data' => NULL,
+   'field_test_text_single_checkbox2_value' => NULL,
++  'field_user_reference_2_uid' => NULL,
++  'field_node_reference_2_nid' => NULL,
+ ))
+ ->values(array(
+   'nid' => '2',
+@@ -3411,6 +3701,8 @@
+   'field_test_imagefield_list' => NULL,
+   'field_test_imagefield_data' => NULL,
+   'field_test_text_single_checkbox2_value' => NULL,
++  'field_user_reference_2_uid' => NULL,
++  'field_node_reference_2_nid' => NULL,
+ ))
+ ->values(array(
+   'nid' => '9',
+@@ -3440,6 +3732,8 @@
+   'field_test_imagefield_list' => NULL,
+   'field_test_imagefield_data' => NULL,
+   'field_test_text_single_checkbox2_value' => NULL,
++  'field_user_reference_2_uid' => NULL,
++  'field_node_reference_2_nid' => NULL,
+ ))
+ ->execute();
+ 
+@@ -31486,10 +31780,10 @@
+   'name' => 'userreference',
+   'type' => 'module',
+   'owner' => '',
+-  'status' => '0',
++  'status' => '1',
+   'throttle' => '0',
+   'bootstrap' => '0',
+-  'schema_version' => '-1',
++  'schema_version' => '6002',
+   'weight' => '0',
+   'info' => 'a:10:{s:4:"name";s:14:"User Reference";s:11:"description";s:56:"Defines a field type for referencing a user from a node.";s:12:"dependencies";a:3:{i:0;s:7:"content";i:1;s:4:"text";i:2;s:13:"optionwidgets";}s:7:"package";s:3:"CCK";s:4:"core";s:3:"6.x";s:7:"version";s:8:"6.x-2.10";s:7:"project";s:3:"cck";s:9:"datestamp";s:10:"1434568159";s:10:"dependents";a:0:{}s:3:"php";s:5:"4.3.5";}',
+ ))
+diff --git a/core/modules/taxonomy/src/Plugin/migrate/cckfield/TaxonomyTermReference.php b/core/modules/taxonomy/src/Plugin/migrate/cckfield/TaxonomyTermReference.php
+deleted file mode 100644
+index d6de1ec..0000000
+--- a/core/modules/taxonomy/src/Plugin/migrate/cckfield/TaxonomyTermReference.php
++++ /dev/null
+@@ -1,41 +0,0 @@
+-<?php
+-
+-/**
+- * @file
+- * Contains \Drupal\taxonomy\Plugin\migrate\cckfield\TaxonomyTermReference.
+- */
+-
+-namespace Drupal\taxonomy\Plugin\migrate\cckfield;
+-
+-use Drupal\migrate\Entity\MigrationInterface;
+-use Drupal\migrate_drupal\Plugin\migrate\cckfield\CckFieldPluginBase;
+-
+-/**
+- * @MigrateCckField(
+- *   id = "taxonomy_term_reference"
+- * )
+- */
+-class TaxonomyTermReference extends CckFieldPluginBase {
+-
+-  /**
+-   * {@inheritdoc}
+-   */
+-  public function getFieldFormatterMap() {
+-    return array();
+-  }
+-
+-  /**
+-   * {@inheritdoc}
+-   */
+-  public function processCckFieldValues(MigrationInterface $migration, $field_name, $data) {
+-    $process = array(
+-      'plugin' => 'iterator',
+-      'source' => $field_name,
+-      'process' => array(
+-        'target_id' => 'tid',
+-      ),
+-    );
+-    $migration->setProcessOfProperty($field_name, $process);
+-  }
+-
+-}
+diff --git a/core/modules/text/src/Plugin/migrate/cckfield/TextField.php b/core/modules/text/src/Plugin/migrate/cckfield/TextField.php
+index a386b5f..83b5425 100644
+--- a/core/modules/text/src/Plugin/migrate/cckfield/TextField.php
++++ b/core/modules/text/src/Plugin/migrate/cckfield/TextField.php
+@@ -123,4 +123,15 @@ public function getFieldType(Row $row) {
+     }
+   }
+ 
++  /**
++   * {@inheritdoc}
++   */
++  public function transformFieldStorageSettings(Row $row) {
++    $settings = parent::transformFieldStorageSettings($row);
++    $global_settings = $row->getSourceProperty('global_settings');
++    $max_length = isset($global_settings['max_length']) ? $global_settings['max_length'] : '';
++    $settings['max_length'] = empty($max_length) ? 255 : $max_length;
++    return $settings;
++  }
++
+ }
