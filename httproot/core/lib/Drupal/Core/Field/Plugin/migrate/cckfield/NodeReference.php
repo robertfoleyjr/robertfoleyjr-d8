@@ -102,11 +102,11 @@ class NodeReference extends ReferenceBase {
     $migrationPlugin = $this->migratePluginManager
       ->createInstance('migration', $migration_plugin_configuration, $migration);
 
-    $roles = [];
-    foreach ($source_node_types as $role) {
-      $roles[] = $migrationPlugin->transform($role, $executable, $row, NULL);
+    $types = [];
+    foreach ($source_node_types as $type) {
+      $types[] = $migrationPlugin->transform($type, $executable, $row, NULL);
     }
-    return array_combine($roles, $roles);
+    return array_combine($types, $types);
   }
 
 }
