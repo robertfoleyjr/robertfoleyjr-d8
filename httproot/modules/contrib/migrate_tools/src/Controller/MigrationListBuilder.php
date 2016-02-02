@@ -9,6 +9,7 @@ namespace Drupal\migrate_tools\Controller;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\migrate\Entity\MigrationInterface;
 use Drupal\Core\Entity\EntityHandlerInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Routing\CurrentRouteMatch;
@@ -79,7 +80,7 @@ class MigrationListBuilder extends ConfigEntityListBuilder implements EntityHand
   /**
    * Builds a row for an entity in the entity listing.
    *
-   * @param \Drupal\migrate\Entity\MigrationInterface $migration
+   * @param \Drupal\migrate\Entity\EntityInterface $migration
    *   The entity for which to build the row.
    *
    * @return array
@@ -87,7 +88,7 @@ class MigrationListBuilder extends ConfigEntityListBuilder implements EntityHand
    *
    * @see Drupal\Core\Entity\EntityListController::render()
    */
-  public function buildRow(MigrationInterface $migration) {
+  public function buildRow(EntityInterface $migration) {
     $row['label'] = $migration->label();
     $row['machine_name'] = $migration->id();
     $row['status'] = $migration->getStatusLabel();
