@@ -84,7 +84,7 @@ class MigrateManifest {
           $migration_info = NestedArray::mergeDeep($GLOBALS['config'][$migration_id], $migration_info);
         }
 
-        $migration_info = NestedArray::mergeDeep($template, $migration_info);
+        $migration_info = NestedArray::mergeDeepArray([$template, $migration_info], TRUE);
       }
       else {
         $migration_info = $template;
