@@ -1,0 +1,25 @@
+# The machine name of the group, by which it is referenced in individual
+# migrations.
+id: project
+
+# A human-friendly label for the group.
+label: Project Imports
+
+# More information about the group.
+description: Provides field transforms for the project field types.
+
+# Short description of the type of source, e.g. "Drupal 6" or "WordPress".
+source_type: Drupal 6
+
+# Here we add any default configuration settings to be shared among all
+# migrations in the group. For this example, the source tables are in the
+# Drupal (default) database, but usually if your source data is in a
+# database it will be external.
+shared_configuration:
+  # Specifying 'source' here means that this configuration will be merged into
+  # the 'source' configuration of each migration.
+  source:
+    # A better practice for real-world migrations would be to add a database
+    # connection to your external database in settings.php and reference its
+    # key here.
+    key: d6_connection:default

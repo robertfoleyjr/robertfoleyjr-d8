@@ -1,0 +1,11 @@
+name: Migrate D6 Project
+type: module
+description: Provides drupal 6 to drupal 8 field validations for Project entity.
+core: 8.x
+package: Migration
+dependencies:
+  - migrate
+  - migrate_drupal
+  - migrate_plus
+  - datetime
+  - entity_reference
